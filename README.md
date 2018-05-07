@@ -5,6 +5,10 @@ Optune "servo" agent base protocol handler (servo core)
 
 << document WIP >>
 
+`servo` is the binary to be packaged
+
+`measure.py` is an optional Python base class used by measurement drivers. It needs to be packaged only if the measurement driver uses it.
+
 ## Testing
 
 When testing, place symlinks `measure` and `adjust` to the respective drivers
