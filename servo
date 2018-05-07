@@ -1,0 +1,333 @@
+#!/usr/bin/python3
+
+'''
+Optune servo (agent) - base protocol handler
+
+Copyright (c) 2018, Opsani
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
+
+* Neither the name of the copyright holder nor the names of its
+  contributors may be used to endorse or promote products derived from
+  this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+'''
+
+# built-in python packages
+import sys
+import os
+import signal
+import time
+import argparse
+import subprocess
+import io
+import json
+import traceback
+
+# 3rd party packages
+import requests
+import requests.exceptions
+
+DFLT_ADJUST_DRIVER = './adjust'
+DFLT_MEASURE_DRIVER = './measure'
+
+def optune_url(account, app_id):
+    global args
+    if args.url:
+        return args.url
+    # return public cloud service and path
+    assert account, 'Optune account is not specified. Use either --account option or SERVO_ACCOUNT env var'
+    return 'https://api.optune.ai/accounts/{}/applications/{}'.format(account, app_id)
+
+def measure(param):
+    global args
+
+    print('measuring', param)
+
+    # execute measurement driver and return result
+    rsp = run_driver(DFLT_MEASURE_DRIVER, args.app_id, req=param)
+    status = rsp.get('status', 'undefined')
+    if status != 'ok':
+        raise Exception('Measurement driver failed with status "{}"'.format(status))
+    metrics = rsp.get('metrics', {})
+    if not metrics:
+        raise Exception('Measurement driver returned no metrics')
+
+    # FIXME: remove hack for ab->perf
+    if 'perf' not in metrics and 'requests throughput' in metrics:
+        metrics['perf'] = metrics['requests throughput']    # use rq/sec as perf metric
+
+    print('measured ', metrics)
+
+    return dict(metrics = metrics)
+
+def adjust(param):
+    global args
+
+    print('adjusting', param)
+
+    # execute adjustment driver and return result
+    rsp = run_driver(DFLT_ADJUST_DRIVER, args.app_id, req=param)
+    status = rsp.get('status', 'undefined')
+    if status == 'ok':
+        print('adjusted ok')
+    else:
+        raise Exception('Adjustment driver failed with status "{}"'.format(status))
+
+    return True
+
+def describe():
+    global args
+
+    print('describing')
+
+    # collect environment and metrics descriptors
+    envd = run_driver(DFLT_ADJUST_DRIVER, args.app_id, describe='--query')      #FIXME: replace with describe=True when unified
+    metd = run_driver(DFLT_MEASURE_DRIVER, args.app_id, describe='--describe')  #FIXME: replace with describe=True when unified
+
+    # construct descriptor
+    d = dict(
+        application = envd,
+        measurement = dict(metrics = metd.get('metrics', {}))
+        ) #FIXME: unify response
+
+    print('DESCRIPTOR:', d)
+
+    return d
+
+
+# --- Helpers -----------------------------------------------------------------
+
+
+def run_driver(driver, app, req = None, describe = False):
+    global args
+
+    if args.verbose:
+        print('DRIVER REQUEST:', driver, req)
+
+    assert not(bool(describe) ^ (req is None)), 'Driver {}: unexpected invocation: describe={}, req={} (exactly one should be used)'.format(driver, describe, req)
+
+    # construct command line
+    cmd = [driver]
+    if describe:
+        if isinstance(describe, bool):
+            cmd.append('--describe')    #FIXME: candidate for unified driver option name
+        else:
+            assert isinstance(describe, str)
+            cmd.append(describe)    #FIXME: remove hack when driver options are unified
+    cmd.append(app)
+
+    # prepare stdin in-memory file if a request is provided
+    if req is not None:
+        stdin_kw = dict(input = json.dumps(req).encode())   # input descriptor -> json -> bytes
+    else:
+        stdin_kw = dict(stdin = subprocess.DEVNULL)         # no stdin
+
+    # execute driver, providing request and capturing stdout/stderr
+    #TODO: use Popen and maybe communicate() to collect progress
+    proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **stdin_kw)
+    rc = proc.returncode
+    if rc != 0:
+        raise Exception('Driver {} returned non-zero exit code {}, stdout "{}", stderr "{}"'.format(driver, rc, proc.stdout, proc.stderr))
+
+    if args.verbose:
+        print('DRIVER RETURNED:\n---stdout-----------------\n{}\n---stderr------------------\n{}\n----------------------\n'.format(proc.stdout, proc.stderr))
+
+    # extract and process output (nb: stderr is discarded TODO: consider capturing into annotation, if allowed)
+    out = proc.stdout.decode().split('\n')
+    rsp = None
+    for o in out:
+        if not o: continue
+        r = json.loads(o)
+        if 'progress' not in r:
+            rsp = r
+            break # first line without progress is likely the response; FIXME: unify responses to always return status (on query/describe and real run)
+    err = proc.stderr.decode()
+    if args.verbose:
+        print('DRIVER RESPONSE:', rsp)
+        if err:
+            print('DRIVER STDERR:', '\n---\n', err, '\n---\n')
+
+    return rsp
+
+def request(event, param, retries = None, backoff = True):
+    '''
+    Send request to cloud service. Retry if it fails to connect.
+    Setting retries to None means retry forever; 0 means no retries, other
+    integer value defines the number of retries
+    TODO: implement backoff - currently ignored
+    '''
+    global args
+
+    ev = dict(event = event, param = param)
+    while True:
+        try:
+            rsp = requests.post(optune_url(args.account, args.app_id), json = ev)  #TODO: add retries/timeout
+        except requests.exceptions.ConnectionError as e:
+            exc = Exception('Server unavailable for event {} ({}: {}).'.format(event, type(e).__name__, str(e)))
+        else:
+            # TODO: check if server failed with 5xx response: display and set exc=True
+            exc = None
+
+        if exc is None:
+            break # success, return response
+
+        # retry or fail
+        if retries is not None:
+            if retries > 0:
+                retries -= 1
+            else:
+                exc = Exception('No more retries left, failed to send {}.'.format(event))
+                raise exc
+
+        print(str(exc), 'Waiting 3 seconds to retry...\n')
+        time.sleep(3)   # wait for cloud service to recover; TODO add progressive backoff to ~1 minute
+        continue
+
+    if args.verbose:
+        print("RESPONSE:", rsp.text)
+    return rsp.json()
+
+def delay():
+    global args
+    if args.interactive:
+        print('Press <Enter> to continue...', end='')
+        sys.stdout.flush()
+        sys.stdin.readline()
+    elif args.delay:
+        time.sleep(args.delay)
+    print()
+
+# --- Main --------------------------------------------------------------------
+
+def exec_command():
+    global args
+
+    ev = ev_param = None
+    cmd = request('WHATS_NEXT', None)
+    if 'cmd' not in cmd:
+        print('Unexpected response: {}'.format(cmd))
+        delay()
+        return
+
+    c = cmd['cmd']
+    if c == 'DESCRIBE':
+        p = cmd['param']
+        v = dict(descriptor=descriptor)
+        if args.verbose or args.interactive:
+            print('DESCRIBE {}: will return {}.'.format(p, v), end=' ')
+        ev = 'DESCRIPTION'
+        ev_param = v
+    elif c == 'MEASURE':
+        p = cmd['param']
+        v = measure(p)
+        if args.verbose or args.interactive:
+            print('MEASURE {}: will return {}.'.format(p, v), end=' ')
+        ev = 'MEASUREMENT'
+        ev_param = v
+    elif c == 'ADJUST':
+        p = cmd['param']
+        v = adjust(p)
+        if args.verbose or args.interactive:
+            print('ADJUST to {}: will {}.'.format(p, 'succeed' if v else 'fail'), end=' ')
+        ev = 'ADJUSTMENT'
+        ev_param = dict(result = v, state = p['state'])
+    elif c == 'SLEEP':
+        p = cmd['param']
+        if args.verbose or args.interactive:
+            print('SLEEP {} sec.'.format(p), end=' ')
+        if not args.interactive: # ignore sleep request when interactive - let user decide
+            print('sleeping {} sec.'.format(p))
+            try:
+                p = int(p)
+            except Exception as e: # if p is None or not a number
+                p = 3
+            time.sleep(p)
+    else:
+        raise Exception('unknown command "{}". Ignoring'.format(c))
+
+    delay() # nb: in interactive mode, will display prompt and wait for keypress
+    if ev:
+        request(ev, ev_param)
+
+def signal_handler(sig_num, frame):
+    # restore original signal handler (to prevent reentry)
+    signal.signal(sig_num, signal.SIG_DFL)
+
+    # determine signal name (best effort)
+    try:
+        sig_name = signal.Signals(sig_num).name
+    except Exception:
+        sig_name = 'signal #{}'.format(sig_num)
+
+    # log signal
+    print('\n*** Servo stop requested by signal "{}". Sending GOODBYE to Optune cloud service (may retry 3 times)'.format(sig_name))
+
+    # send GOODBYE event (best effort)
+    try:
+        request('GOODBYE', dict(reason = sig_name), retries=3, backoff = False)
+    except Exception as e:
+        print('Warning: failed to send GOODBYE: {}. Exiting anyway'.format(str(e)))
+
+    sys.exit(0) # abort now
+
+
+if __name__ == '__main__':
+
+    # parse command line
+    parser = argparse.ArgumentParser(description='Servo for Optune by Opsani')
+    parser.add_argument('app_id', help='Application name (id)', default=None)
+    parser.add_argument('--interactive', '-i', help='Interactive mode, wait for user prompt on each command', action='store_true')
+    parser.add_argument('--delay', '-d', help='Add delay between commands, seconds (ignored in interactive mode)', type=float, default=0.0)
+    parser.add_argument('--verbose', '-v', help='Print more info on adjustments and measurements', action='store_true')
+    parser.add_argument('--agent', '-a', help='Specify agent name for the servo (similar to http agent)', default='github.com/opsani/servo')
+    parser.add_argument('--account', help='Specify account name to override SERVO_ACCOUNT env. var', default=os.environ.get('SERVO_ACCOUNT'))
+    parser.add_argument('--url', help='Specify url to use instead of the default Optune API', default=None)
+    args = parser.parse_args()
+
+    # enforce app_id is provided
+    if not args.app_id:
+        raise ValueError('app_id parameter is required')
+
+    # intercept SIGINT to provide graceful, traceback-less Ctrl-C/SIGTERM handling
+    signal.signal(signal.SIGTERM, signal_handler) # container kill
+    signal.signal(signal.SIGINT, signal_handler) # Ctrl-C
+    delay()
+
+    # obtain app descriptor
+    descriptor = describe()
+
+    # display mode
+    if args.interactive:
+        print('Interactive mode: press <Enter> to send each event')
+
+    # announce
+    print('Saying HELLO.', end=' ')
+    delay()
+    request('HELLO', dict(agent = args.agent))
+
+    # run in servo mode
+    while True:
+        try:
+            exec_command()
+        except Exception as e:
+            traceback.print_exc()

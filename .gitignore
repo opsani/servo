@@ -1,3 +1,7 @@
+# servo-specific files - symlinks to drivers used in testing
+adjust
+measure
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
