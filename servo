@@ -185,8 +185,24 @@ def request(event, param, retries = None, backoff = True):
         except requests.exceptions.ConnectionError as e:
             exc = Exception('Server unavailable for event {} ({}: {}).'.format(event, type(e).__name__, str(e)))
         else:
-            # TODO: check if server failed with 5xx response: display and set exc=True
-            exc = None
+            # check if server failed with 5xx response: display and set exc
+            if not rsp.ok:
+                try:
+                    rsp_msg = rsp.text
+                except Exception as e:
+                    rsp_msg = "(unknown: failed to parse: {}: {})".format(type(e).__name__, str(e))
+                exc = Exception('Server failed request with status {}'.format(rsp.status_code, rsp_msg))
+            else:
+                try:
+                    rsp_json = rsp.json()
+                except Exception as e:
+                    try:
+                        rsp_msg = rsp.text
+                    except Exception as e:
+                        rsp_msg = "(unknown: failed to parse: {}: {})".format(type(e).__name__, str(e))
+                    exc = Exception('Server response is not valid json: {}'.format(rsp_msg))
+                else:
+                    exc = None
 
         if exc is None:
             break # success, return response
@@ -205,7 +221,7 @@ def request(event, param, retries = None, backoff = True):
 
     if args.verbose:
         print("RESPONSE:", rsp.text)
-    return rsp.json()
+    return rsp_json
 
 def delay():
     global args
