@@ -93,7 +93,7 @@ def adjust(param):
     else:
         raise Exception('Adjustment driver failed with status "{}"'.format(status))
 
-    return True
+    return {}
 
 def describe():
     global args
@@ -217,6 +217,12 @@ def delay():
         time.sleep(args.delay)
     print()
 
+def exc_format(e):
+    if type(e) == type(Exception()):  # if it's just an Exception
+        return str(e) # print only the message but not the type
+    else:
+        return "{}: {}".format(type(e).__name__, str(e)) # print the exception type and message
+
 # --- Main --------------------------------------------------------------------
 
 def exec_command():
@@ -232,25 +238,39 @@ def exec_command():
     c = cmd['cmd']
     if c == 'DESCRIBE':
         p = cmd['param']
-        v = dict(descriptor=descriptor)
+        try:
+            v = dict(descriptor=describe(), status = 'ok')
+        except Exception as e:
+            traceback.print_exc()
+            v = dict(status = 'failed', message = exc_format(e))
         if args.verbose or args.interactive:
             print('DESCRIBE {}: will return {}.'.format(p, v), end=' ')
         ev = 'DESCRIPTION'
         ev_param = v
     elif c == 'MEASURE':
         p = cmd['param']
-        v = measure(p)
+        try:
+            v = measure(p)
+        except Exception as e:
+            traceback.print_exc()
+            v = dict(status = 'failed', message = exc_format(e))
         if args.verbose or args.interactive:
             print('MEASURE {}: will return {}.'.format(p, v), end=' ')
         ev = 'MEASUREMENT'
         ev_param = v
     elif c == 'ADJUST':
         p = cmd['param']
-        v = adjust(p)
+        try:
+            v = adjust(p)
+            if 'state' not in v: # if driver didn't return state, assume it is what was requested
+                v['state'] = p['state']
+        except Exception as e:
+            traceback.print_exc()
+            v = dict(status = 'failed', message = exc_format(e))
         if args.verbose or args.interactive:
-            print('ADJUST to {}: will {}.'.format(p, 'succeed' if v else 'fail'), end=' ')
+            print('ADJUST to {}: will return {}.'.format(p, v), end=' ')
         ev = 'ADJUSTMENT'
-        ev_param = dict(result = v, state = p['state'])
+        ev_param = v
     elif c == 'SLEEP':
         p = cmd['param']
         if args.verbose or args.interactive:
@@ -311,10 +331,7 @@ if __name__ == '__main__':
     # intercept SIGINT to provide graceful, traceback-less Ctrl-C/SIGTERM handling
     signal.signal(signal.SIGTERM, signal_handler) # container kill
     signal.signal(signal.SIGINT, signal_handler) # Ctrl-C
-    delay()
 
-    # obtain app descriptor
-    descriptor = describe()
 
     # display mode
     if args.interactive:
