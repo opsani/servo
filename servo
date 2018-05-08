@@ -215,8 +215,8 @@ def request(event, param, retries = None, backoff = True):
                 exc = Exception('No more retries left, failed to send {}.'.format(event))
                 raise exc
 
-        print(str(exc), 'Waiting 3 seconds to retry...\n')
-        time.sleep(3)   # wait for cloud service to recover; TODO add progressive backoff to ~1 minute
+        print(str(exc), 'Waiting 30 seconds to retry...\n')
+        time.sleep(30)   # wait for cloud service to recover; TODO add progressive backoff to ~1 minute
         continue
 
     if args.verbose:
