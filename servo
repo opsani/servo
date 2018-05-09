@@ -176,12 +176,13 @@ def request(event, param, retries = None, backoff = True):
     integer value defines the number of retries
     TODO: implement backoff - currently ignored
     '''
-    global args
+    global args, session
 
     ev = dict(event = event, param = param)
     while True:
         try:
-            rsp = requests.post(optune_url(args.account, args.app_id), json = ev)  #TODO: add retries/timeout
+            # TODO: add retries/timeout
+            rsp = session.post(optune_url(args.account, args.app_id), json=ev)
         except requests.exceptions.ConnectionError as e:
             exc = Exception('Server unavailable for event {} ({}: {}).'.format(event, type(e).__name__, str(e)))
         else:
@@ -338,6 +339,7 @@ if __name__ == '__main__':
     parser.add_argument('--agent', '-a', help='Specify agent name for the servo (similar to http agent)', default='github.com/opsani/servo')
     parser.add_argument('--account', help='Specify account name to override SERVO_ACCOUNT env. var', default=os.environ.get('SERVO_ACCOUNT'))
     parser.add_argument('--url', help='Specify url to use instead of the default Optune API', default=None)
+    parser.add_argument('--auth-token', help='Specify path to a file where the authentication token is stored', type=argparse.FileType('r'))
     args = parser.parse_args()
 
     # enforce app_id is provided
@@ -348,6 +350,14 @@ if __name__ == '__main__':
     signal.signal(signal.SIGTERM, signal_handler) # container kill
     signal.signal(signal.SIGINT, signal_handler) # Ctrl-C
 
+    # create requests session so that we can set authentication in one place
+    session = requests.Session()
+
+    # setup authentication
+    if args.auth_token:
+        print('Loading authentication toke')
+        token = args.auth_token.read().strip()
+        session.headers.update({'Authentication': 'bearer %s' % token})
 
     # display mode
     if args.interactive:
