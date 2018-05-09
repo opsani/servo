@@ -50,6 +50,8 @@ import requests.exceptions
 DFLT_ADJUST_DRIVER = './adjust'
 DFLT_MEASURE_DRIVER = './measure'
 
+DFLT_AUTH_FILE = '/run/secrets/optune_auth_token'
+
 def optune_url(account, app_id):
     global args
     if args.url:
@@ -339,7 +341,11 @@ if __name__ == '__main__':
     parser.add_argument('--agent', '-a', help='Specify agent name for the servo (similar to http agent)', default='github.com/opsani/servo')
     parser.add_argument('--account', help='Specify account name to override SERVO_ACCOUNT env. var', default=os.environ.get('SERVO_ACCOUNT'))
     parser.add_argument('--url', help='Specify url to use instead of the default Optune API', default=None)
-    parser.add_argument('--auth-token', help='Specify path to a file where the authentication token is stored', type=argparse.FileType('r'))
+    parser.add_argument('--auth-token', 
+        help='Specify path to a file where the authentication token is stored',
+        default=DFLT_AUTH_FILE)
+    parser.add_argument('--no-auth', help='Disable authentication', action='store_true')
+
     args = parser.parse_args()
 
     # enforce app_id is provided
@@ -354,9 +360,10 @@ if __name__ == '__main__':
     session = requests.Session()
 
     # setup authentication
-    if args.auth_token:
-        print('Loading authentication toke')
-        token = args.auth_token.read().strip()
+    if not args.no_auth:
+        print('Loading authentication token from file:', args.auth_token)
+        with open(args.auth_token, 'r') as auth_file:
+            token = auth_file.read().strip()
         session.headers.update({'Authentication': 'bearer %s' % token})
 
     # display mode
