@@ -108,7 +108,7 @@ def describe():
 
     # construct descriptor
     d = dict(
-        application = envd,
+        application=envd.get('application', {}),
         measurement = dict(metrics = metd.get('metrics', {}))
         ) #FIXME: unify response
 
