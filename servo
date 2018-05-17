@@ -218,8 +218,9 @@ def request(event, param, retries = None, backoff = True):
                 exc = Exception('No more retries left, failed to send {}.'.format(event))
                 raise exc
 
-        print(str(exc), 'Waiting 30 seconds to retry...\n')
-        time.sleep(30)   # wait for cloud service to recover; TODO add progressive backoff to ~1 minute
+        retry_delay = 20 # seconds
+        print(str(exc), 'Waiting {} seconds to retry...\n'.format(retry_delay))
+        time.sleep(retry_delay)   # wait for cloud service to recover; TODO add progressive backoff to ~1 minute
         continue
 
     if args.verbose:
@@ -295,12 +296,12 @@ def exec_command():
         if args.verbose or args.interactive:
             print('SLEEP {} sec.'.format(p), end=' ')
         if not args.interactive: # ignore sleep request when interactive - let user decide
-            print('sleeping {} sec.'.format(p))
             try:
-                p = int(p)
-            except Exception as e: # if p is None or not a number
-                p = 3
-            time.sleep(p)
+                duration = int(p['duration'])
+            except Exception:
+                duration = 120 # seconds
+            print('sleeping {} sec.'.format(p))
+            time.sleep(duration)
     else:
         raise Exception('unknown command "{}". Ignoring'.format(c))
 
@@ -341,7 +342,7 @@ if __name__ == '__main__':
     parser.add_argument('--agent', '-a', help='Specify agent name for the servo (similar to http agent)', default='github.com/opsani/servo')
     parser.add_argument('--account', help='Specify account name to override SERVO_ACCOUNT env. var', default=os.environ.get('SERVO_ACCOUNT'))
     parser.add_argument('--url', help='Specify url to use instead of the default Optune API', default=None)
-    parser.add_argument('--auth-token', 
+    parser.add_argument('--auth-token',
         help='Specify path to a file where the authentication token is stored',
         default=DFLT_AUTH_FILE)
     parser.add_argument('--no-auth', help='Disable authentication', action='store_true')
