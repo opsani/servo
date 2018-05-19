@@ -41,7 +41,9 @@ import argparse
 import subprocess
 import io
 import json
-import traceback
+import traceback        # for exception traceback print/capture
+import typing
+from functools import partial
 
 # 3rd party packages
 import requests
@@ -51,6 +53,10 @@ DFLT_ADJUST_DRIVER = './adjust'
 DFLT_MEASURE_DRIVER = './measure'
 
 DFLT_AUTH_FILE = '/run/secrets/optune_auth_token'
+
+class CancelDriverException(Exception):
+    '''Exception to raise to cancel pending driver operation'''
+    pass
 
 def optune_url(account, app_id):
     global args
@@ -66,7 +72,7 @@ def measure(param):
     print('measuring', param)
 
     # execute measurement driver and return result
-    rsp = run_driver(DFLT_MEASURE_DRIVER, args.app_id, req=param)
+    rsp = run_driver(DFLT_MEASURE_DRIVER, args.app_id, req=param, progress_cb = partial(report_progress, 'MEASUREMENT', time.time()))
     status = rsp.get('status', 'undefined')
     if status != 'ok':
         raise Exception('Measurement driver failed with status "{}"'.format(status))
@@ -88,7 +94,7 @@ def adjust(param):
     print('adjusting', param)
 
     # execute adjustment driver and return result
-    rsp = run_driver(DFLT_ADJUST_DRIVER, args.app_id, req=param)
+    rsp = run_driver(DFLT_ADJUST_DRIVER, args.app_id, req=param, progress_cb = partial(report_progress, 'ADJUSTMENT', time.time()))
     status = rsp.get('status', 'undefined')
     if status == 'ok':
         print('adjusted ok')
@@ -120,13 +126,31 @@ def describe():
 # --- Helpers -----------------------------------------------------------------
 
 
-def run_driver(driver, app, req = None, describe = False):
+def run_driver(driver, app, req = None, describe = False, progress_cb: typing.Callable[..., None] = None):
+    '''
+    Execute external driver to perform adjustment or measurement - or just get a descriptor
+    Parameters:
+        driver : path to driver executable
+        app    : application ID to pass to driver
+        req    : request input data (descriptor) to submit to driver's stdin (dict)
+        describe: bool. If true, requesting a descriptor, not adjust/measure. Req must be None
+        progress_cb: callback function to report progress; if it raises exception, try to abort driver's operation
+                Callback takes zero or more of the following named parameters (send None or omit to skip):
+                - progress: int, 0-100%
+                - time_remain: int, seconds
+                - message: str, progress/stage message
+                - log: list[str], messages to be logged
+    '''
     global args
 
     if args.verbose:
         print('DRIVER REQUEST:', driver, req)
 
     assert not(bool(describe) ^ (req is None)), 'Driver {}: unexpected invocation: describe={}, req={} (exactly one should be used)'.format(driver, describe, req)
+
+    # test only FIXME@@@
+    if progress_cb:
+        progress_cb(progress = 0, message = 'starting driver')
 
     # construct command line
     cmd = [driver]
@@ -308,6 +332,42 @@ def exec_command():
     delay() # nb: in interactive mode, will display prompt and wait for keypress
     if ev:
         request(ev, ev_param)
+
+def report_progress(operation : str, ts_started: float, progress : int, time_remain : int = None, message : str = None, log : list = None) -> None:
+    '''
+    Report progress of driver operation
+    Parameters:
+    (Note that the first two parameters are usually passed as part of a closure, the remainder passed on callback)
+        operation: event to send progress with (ADJUSTMENT or MEASUREMENT); if None/'', no progress will be reported
+        ts_started: timestamp when operation started
+        progress: percent completed [0-100] (if known; None otherwise)
+        time_remain: time remaining [seconds] (if known; None otherwise)
+        message: message to display (e.g., 'now adjusting compnent XX' or 'measurement: warming up'), or None
+        log: list of zero or more strings reporting warnings or otherwise important items to send to cloud engine to log
+    Returns nothing
+    Raises exception in order to abort the operation (e.g., if told to do so
+    by the cloud engine)
+    '''
+    def set_if(d, k, v):
+        '''set dict key to value only if value is not None'''
+        if v is not None: d[k] = v
+
+    # skip progress if no operation specified (the protocol requires identifying the operation)
+    if not operation:
+        return
+
+    # prepare parameters (progress field must be present, even if None)
+    param = dict(progress = progress, runtime = int(time.time() - ts_started))
+    set_if(param, 'time_remain', time_remain)
+    set_if(param, 'message'    , message)
+    set_if(param, 'log'        , log)
+
+    # send event (limited retries)
+    rsp = request(operation, param, retries = 1, backoff = False)
+    #if rsp.xxx:
+    #   raise CancelDriverException('message')
+    return
+
 
 def signal_handler(sig_num, frame):
     # restore original signal handler (to prevent reentry)
