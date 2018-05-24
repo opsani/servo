@@ -63,7 +63,7 @@ def optune_url(account, app_id):
     if args.url:
         return args.url
     # return public cloud service and path
-    assert account, 'Optune account is not specified. Use either --account option or SERVO_ACCOUNT env var'
+    assert account, 'Optune account is not specified. Use either --account option or OPTUNE_ACCOUNT env var'
     return 'https://api.optune.ai/accounts/{}/applications/{}/servo'.format(account, app_id)
 
 def measure(param):
@@ -400,7 +400,7 @@ if __name__ == '__main__':
     parser.add_argument('--delay', '-d', help='Add delay between commands, seconds (ignored in interactive mode)', type=float, default=0.0)
     parser.add_argument('--verbose', '-v', help='Print more info on adjustments and measurements', action='store_true')
     parser.add_argument('--agent', '-a', help='Specify agent name for the servo (similar to http agent)', default='github.com/opsani/servo')
-    parser.add_argument('--account', help='Specify account name to override SERVO_ACCOUNT env. var', default=os.environ.get('SERVO_ACCOUNT'))
+    parser.add_argument('--account', help='Specify account name to override OPTUNE_ACCOUNT env. var', default=os.environ.get('OPTUNE_ACCOUNT'))
     parser.add_argument('--url', help='Specify url to use instead of the default Optune API', default=None)
     parser.add_argument('--auth-token',
         help='Specify path to a file where the authentication token is stored',
