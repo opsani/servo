@@ -39,6 +39,7 @@ import signal
 import time
 import argparse
 import subprocess
+import select
 import io
 import json
 import traceback        # for exception traceback print/capture
@@ -164,34 +165,61 @@ def run_driver(driver, app, req = None, describe = False, progress_cb: typing.Ca
 
     # prepare stdin in-memory file if a request is provided
     if req is not None:
-        stdin_kw = dict(input = json.dumps(req).encode())   # input descriptor -> json -> bytes
+        stdin = json.dumps(req).encode("UTF-8")   # input descriptor -> json -> bytes
     else:
-        stdin_kw = dict(stdin = subprocess.DEVNULL)         # no stdin
+        stdin = b''         # no stdin
 
     # execute driver, providing request and capturing stdout/stderr
-    #TODO: use Popen and maybe communicate() to collect progress
-    proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **stdin_kw)
+    proc = subprocess.Popen(cmd, bufsize=0, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+    stderr = [] # collect all stderr here
+    rsp = {"status": "nodata"} # in case driver outputs nothing at all
+    wi = [proc.stdin]
+    ei = [proc.stdin, proc.stdout,proc.stderr]
+    while proc.poll() is None:
+        r,w,e = select.select([proc.stdout,proc.stderr], wi, ei )
+        for h in r:
+            if h is proc.stderr:
+                stderr.append(h.read(4096))
+            else: # h is proc.stdout
+                stdout_line = h.readline().strip().decode("UTF-8") # there will always be a complete line, driver writes one line at a time
+                if args.verbose:
+                    print('DRIVER STDOUT:', stdout_line)
+                if not stdout_line:
+                    continue # ignore trailing newline (readline gets empty string)
+                try:
+                    stdout = json.loads(stdout_line)
+                except Exception as x:
+                    proc.terminate()
+                    # TODO: handle exception in json.loads?
+                    raise
+                if "progress" in stdout:
+                    progress_cb(progress=stdout["progress"], message = stdout.get("message", None)) # FIXME stage/stageprogress ignored
+                else: # should be the last line only (TODO: check only one non-progress line is output)
+                    rsp = stdout
+        if w:
+            l = min(getattr(select,'PIPE_BUF',512), len(stdin)) # write with select.PIPE_BUF bytes or less should not block
+            if not l: # done sending stdin
+                proc.stdin.close()
+                wi = []
+                ei = [proc.stdout,proc.stderr]
+            else:
+                proc.stdin.write(stdin[:l])
+                stdin = stdin[l:]
+        # if e:
+
     rc = proc.returncode
     if rc != 0:
-        raise Exception('Driver {} returned non-zero exit code {}, stdout "{}", stderr "{}"'.format(driver, rc, proc.stdout, proc.stderr))
+        raise Exception('Driver {} returned non-zero exit code {}, stdout "{}", stderr "{}"'.format(driver, rc, stdout, (b"\n".join(stderr)).decode("UTF-8")))
 
     if args.verbose:
-        print('DRIVER RETURNED:\n---stdout-----------------\n{}\n---stderr------------------\n{}\n----------------------\n'.format(proc.stdout, proc.stderr))
+        print('DRIVER RETURNED:\n---stderr------------------\n{}\n----------------------\n'.format( (b"\n".join(stderr)).decode("UTF-8") ))
 
-    # extract and process output (nb: stderr is discarded TODO: consider capturing into annotation, if allowed)
-    out = proc.stdout.decode().split('\n')
-    rsp = None
-    for o in out:
-        if not o: continue
-        r = json.loads(o)
-        if 'progress' not in r:
-            rsp = r
-            break # first line without progress is likely the response; FIXME: unify responses to always return status (on query/describe and real run)
-    err = proc.stderr.decode()
+    # (nb: stderr is discarded TODO: consider capturing into annotation, if allowed)
+    # err = (b"\n".join(stderr)).decode("UTF-8")
     if args.verbose:
         print('DRIVER RESPONSE:', rsp)
-        if err:
-            print('DRIVER STDERR:', '\n---\n', err, '\n---\n')
+#LK: already printed        if err:
+#            print('DRIVER STDERR:', '\n---\n', err, '\n---\n')
 
     return rsp
 
