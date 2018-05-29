@@ -208,11 +208,11 @@ def run_driver(driver, app, req = None, describe = False, progress_cb: typing.Ca
         # if e:
 
     rc = proc.returncode
+    if args.verbose or rc != 0:
+        print('DRIVER RETURNED:\n---stderr------------------\n{}\n----------------------\n'.format( (b"\n".join(stderr)).decode("UTF-8") ))  # use accumulated stderr
     if rc != 0:
-        raise Exception('Driver {} returned non-zero exit code {}, stdout "{}", stderr "{}"'.format(driver, rc, stdout, (b"\n".join(stderr)).decode("UTF-8")))
+        raise Exception('Driver {} returned non-zero exit code {}'.format(driver, rc))
 
-    if args.verbose:
-        print('DRIVER RETURNED:\n---stderr------------------\n{}\n----------------------\n'.format( (b"\n".join(stderr)).decode("UTF-8") ))
 
     # (nb: stderr is discarded TODO: consider capturing into annotation, if allowed)
     # err = (b"\n".join(stderr)).decode("UTF-8")
@@ -246,7 +246,11 @@ def request(event, param, retries = None, backoff = True):
                     rsp_msg = rsp.text
                 except Exception as e:
                     rsp_msg = "(unknown: failed to parse: {}: {})".format(type(e).__name__, str(e))
-                exc = Exception('Server failed request with status {}'.format(rsp.status_code, rsp_msg))
+                try:
+                    rsp_msg = json.loads(rsp_msg)['message'] # extract salient message if json formatted
+                except Exception:
+                    pass # leave raw text
+                exc = Exception('Server rejected request with status {}: {}.'.format(rsp.status_code, rsp_msg))
             else:
                 try:
                     rsp_json = rsp.json()
@@ -255,7 +259,7 @@ def request(event, param, retries = None, backoff = True):
                         rsp_msg = rsp.text
                     except Exception as e:
                         rsp_msg = "(unknown: failed to parse: {}: {})".format(type(e).__name__, str(e))
-                    exc = Exception('Server response is not valid json: {}'.format(rsp_msg))
+                    exc = Exception('Server response is not valid json: {}.'.format(rsp_msg))
                 else:
                     exc = None
 
