@@ -175,19 +175,29 @@ def run_driver(driver, app, req = None, describe = False, progress_cb: typing.Ca
     rsp = {"status": "nodata"} # in case driver outputs nothing at all
     wi = [proc.stdin]
     ei = [proc.stdin, proc.stdout,proc.stderr]
+    eof_stdout = False
+    eof_stderr = False #
     while True:
         r,w,e = select.select([proc.stdout,proc.stderr], wi, ei )
-        if not r and proc.poll() is not None: # process exited and no more data
+        if eof_stdout and eof_stderr and proc.poll() is not None: # process exited and no more data
             break
         for h in r:
             if h is proc.stderr:
-                stderr.append(h.read(4096))
+                l = h.read(4096)
+                if not l:
+                    eof_stderr = True
+                    continue
+                stderr.append(l)
             else: # h is proc.stdout
-                stdout_line = h.readline().strip().decode("UTF-8") # there will always be a complete line, driver writes one line at a time
+                l = h.readline()
+                if not l:
+                    eof_stdout = True
+                    continue
+                stdout_line = l.strip().decode("UTF-8") # there will always be a complete line, driver writes one line at a time
                 if args.verbose:
                     print('DRIVER STDOUT:', stdout_line)
                 if not stdout_line:
-                    continue # ignore trailing newline (readline gets empty string)
+                    continue # ignore blank lines (shouldn't be output, though)
                 try:
                     stdout = json.loads(stdout_line)
                 except Exception as x:
