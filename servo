@@ -175,8 +175,10 @@ def run_driver(driver, app, req = None, describe = False, progress_cb: typing.Ca
     rsp = {"status": "nodata"} # in case driver outputs nothing at all
     wi = [proc.stdin]
     ei = [proc.stdin, proc.stdout,proc.stderr]
-    while proc.poll() is None:
+    while True:
         r,w,e = select.select([proc.stdout,proc.stderr], wi, ei )
+        if not r and proc.poll() is not None: # process exited and no more data
+            break
         for h in r:
             if h is proc.stderr:
                 stderr.append(h.read(4096))
