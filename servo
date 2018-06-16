@@ -81,7 +81,7 @@ def measure(param):
     if not metrics:
         raise Exception('Measurement driver returned no metrics')
 
-    # FIXME: remove hack for ab->perf
+    # FIXME: remove this hack for ab->perf
     if 'perf' not in metrics and 'requests throughput' in metrics:
         metrics['perf'] = metrics['requests throughput']    # use rq/sec as perf metric
 
@@ -112,6 +112,11 @@ def describe():
     # collect environment and metrics descriptors
     envd = run_driver(DFLT_ADJUST_DRIVER, args.app_id, describe='--query')      #FIXME: replace with describe=True when unified
     metd = run_driver(DFLT_MEASURE_DRIVER, args.app_id, describe='--describe')  #FIXME: replace with describe=True when unified
+
+    # FIXME: remove this hack for ab->perf
+    metrics = metd.get('metrics')
+    if metrics and 'perf' not in metrics and 'requests throughput' in metrics:
+        metrics['perf'] = metrics['requests throughput']    # use rq/sec as perf metric
 
     # construct descriptor
     d = dict(
