@@ -94,6 +94,8 @@ class Adjust(object):
         # Adjust // TODO: print output??
         try:
             self.adjust()
+            # if the above didn't raise an exception, all done (empty completion data, status 'ok')
+            print(json.dumps(dict(status='ok')))
         except Exception as e:
             self.print_measure_error(
                 e.__class__.__name__,
