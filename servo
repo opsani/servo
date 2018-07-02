@@ -474,7 +474,7 @@ if __name__ == '__main__':
         print('Loading authentication token from file:', args.auth_token)
         with open(args.auth_token, 'r') as auth_file:
             token = auth_file.read().strip()
-        session.headers.update({'Authentication': 'bearer %s' % token})
+        session.headers.update({'Authorization': 'Bearer %s' % token})
 
     # display mode
     if args.interactive:
