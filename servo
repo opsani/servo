@@ -227,9 +227,6 @@ def run_driver(driver, app, req = None, describe = False, progress_cb: typing.Ca
     rc = proc.returncode
     if args.verbose or rc != 0:
         print('DRIVER RETURNED:\n---stderr------------------\n{}\n----------------------\n'.format( (b"\n".join(stderr)).decode("UTF-8") ))  # use accumulated stderr
-    if rc != 0:
-        raise Exception('Driver {} returned non-zero exit code {}'.format(driver, rc))
-
 
     # (nb: stderr is discarded TODO: consider capturing into annotation, if allowed)
     # err = (b"\n".join(stderr)).decode("UTF-8")
@@ -237,6 +234,18 @@ def run_driver(driver, app, req = None, describe = False, progress_cb: typing.Ca
         print('DRIVER RESPONSE:', rsp)
 #LK: already printed        if err:
 #            print('DRIVER STDERR:', '\n---\n', err, '\n---\n')
+
+    if rc != 0: # error, add verbose info to returned data
+        if not rsp.get("status"): # NOTE if driver didn't return any json, status will be "nodata". Preferably, it should print structured data even on failures, so errors can be reported neatly.
+            rsp["status"] = "failed"
+        m = rsp.get("message", "")
+        # if config[report_stderr]:
+        rs = os.environ.get("OPTUNE_VERBOSE_STDERR", "all") # FIXME: default setting?
+        if rs == "all":
+            rsp["message"] = m + "\nstderr:\n" + (b"\n".join(stderr)).decode("UTF-8")
+        elif rs == "minimal": # 1st two lines only
+            rsp["message"] = m + "\nstderr:\n" + (b"\n".join(stderr[0:2])).decode("UTF-8")
+        # else don't send any bit of stderr
 
     return rsp
 
