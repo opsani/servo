@@ -76,7 +76,8 @@ def measure(param):
     rsp = run_driver(DFLT_MEASURE_DRIVER, args.app_id, req=param, progress_cb = partial(report_progress, 'MEASUREMENT', time.time()))
     status = rsp.get('status', 'undefined')
     if status != 'ok':
-        raise Exception('Measurement driver failed with status "{}"'.format(status))
+        raise Exception('Measurement driver failed with status "{}" and message "{}"'.format(
+            status, rsp.get('message', 'undefined')))
     metrics = rsp.get('metrics', {})
     if not metrics:
         raise Exception('Measurement driver returned no metrics')
@@ -100,7 +101,8 @@ def adjust(param):
     if status == 'ok':
         print('adjusted ok')
     else:
-        raise Exception('Adjustment driver failed with status "{}"'.format(status))
+        raise Exception('Adjustment driver failed with status "{}" and message "{}"'.format(
+            status, rsp.get('message', 'undefined')))
 
     return {}
 
