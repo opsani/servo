@@ -365,7 +365,12 @@ def exec_command():
     elif c == 'ADJUST':
         p = cmd['param']
         try:
-            v = adjust(p['state'])
+            # create a new dict based on p['state'] (with its top level key
+            # 'application') which also includes a top-level 'control' key, and
+            # pass this to adjust()
+            new_dict = p['state'].copy()
+            new_dict['control'] = p.get('control',{})
+            v = adjust(new_dict)
             if 'state' not in v: # if driver didn't return state, assume it is what was requested
                 v['state'] = p['state']
         except Exception as e:
