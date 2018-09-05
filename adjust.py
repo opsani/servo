@@ -19,7 +19,7 @@ class Adjust(object):
            ...
        def handle_cancel(self, signal, frame):
            ...
-       def adjust(self):
+       def adjust(self, data):
            ...
     if __name__ == '__main__':
         foo = MyClass(VERSION, DESC, HAS_CANCEL)
@@ -37,11 +37,15 @@ class Adjust(object):
         self.parser = argparse.ArgumentParser(description=cli_desc)
 
         self.parser.add_argument(
-            '--version', help='Don\'t adjust, instead print version and exit', default=False, action='store_true')
+            '--version', help='print version and exit', default=False, action='store_true')
         self.parser.add_argument(
-            '--info', help='Don\'t adjust, instead print driver info and exit', default=False, action='store_true')
+            '--info', help='output driver info and exit', default=False, action='store_true')
+        qry_help = 'output current state of settings for this application'
         self.parser.add_argument(
-            '--query', help='Don\'t adjust, instead print the current state of settings for this application', default=False, action='store_true')
+            '--query', help=qry_help, default=False, action='store_true')
+        # alias for query
+        self.parser.add_argument(
+            '--describe', dest='query', help=qry_help, default=False, action='store_true')
         self.parser.add_argument(
             'app_id', help='Name/ID of the application to adjust', nargs='?')
         self.args = self.parser.parse_args()
@@ -69,10 +73,12 @@ class Adjust(object):
         if self.args.query:
             try:
                 query = self.query()
-                print(json.dumps(dict(application=query)))
+                if "application" not in query:
+                    query = { "application" : query } # legacy compat.
+                print(json.dumps(query))
                 sys.exit(0)
             except Exception as e:
-                self.print_measure_error(
+                self.print_json_error(
                     e.__class__.__name__,
                     "failure",
                     str(e)
@@ -81,10 +87,11 @@ class Adjust(object):
 
         # Parse input
         try:
-            self.debug("Reading stdin")
-            self.input_data = json.loads(sys.stdin.read())
+            # self.debug("Reading stdin")
+            input_data = json.loads(sys.stdin.read())
+            self.input_data = input_data # LEGACY mode, remove when drivers are updated to use arg
         except Exception as e:
-            self.print_measure_error(
+            self.print_json_error(
                 e.__class__.__name__,
                 "failed to parse input",
                 str(e)
@@ -93,11 +100,15 @@ class Adjust(object):
 
         # Adjust // TODO: print output??
         try:
-            self.adjust()
+            c = self.adjust.__code__.co_argcount
+            if c == 2:
+                self.adjust(input_data)
+            else:
+                self.adjust() # LEGACY mode
             # if the above didn't raise an exception, all done (empty completion data, status 'ok')
             print(json.dumps(dict(status='ok')))
         except Exception as e:
-            self.print_measure_error(
+            self.print_json_error(
                 e.__class__.__name__,
                 "failure",
                 str(e)
@@ -107,7 +118,7 @@ class Adjust(object):
     def debug(self, *message):
         print(*message, flush=True, file=sys.stderr)
 
-    def print_measure_error(self, error, cl, message):
+    def print_json_error(self, error, cl, message):
         '''
         Prints JSON formatted error
         '''
@@ -126,7 +137,7 @@ class Adjust(object):
         '''
         raise Exception("Not implemented")
 
-    def adjust(self):
+    def adjust(self, data = None):
         '''
         '''
         raise Exception("Not implemented")
