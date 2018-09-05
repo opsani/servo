@@ -19,7 +19,7 @@ class Adjust(object):
            ...
        def handle_cancel(self, signal, frame):
            ...
-       def adjust(self):
+       def adjust(self, data):
            ...
     if __name__ == '__main__':
         foo = MyClass(VERSION, DESC, HAS_CANCEL)
@@ -137,7 +137,7 @@ class Adjust(object):
         '''
         raise Exception("Not implemented")
 
-    def adjust(self):
+    def adjust(self, data = None):
         '''
         '''
         raise Exception("Not implemented")
