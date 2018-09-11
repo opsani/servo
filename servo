@@ -112,19 +112,29 @@ def describe():
     print('describing')
 
     # collect environment and metrics descriptors
-    envd = run_driver(DFLT_ADJUST_DRIVER, args.app_id, describe='--query')      #FIXME: replace with describe=True when unified
-    metd = run_driver(DFLT_MEASURE_DRIVER, args.app_id, describe='--describe')  #FIXME: replace with describe=True when unified
+    # FIXME: replace with describe=True when unified
+    envd = run_driver(DFLT_ADJUST_DRIVER, args.app_id, describe='--query')
+    if envd.get('status', 'ok') != 'ok':
+        raise Exception('Adjust driver failed with status "{}" and message "{}"'.format(
+            envd.get('status'), envd.get('message')))
+
+    # FIXME: replace with describe=True when unified
+    metd = run_driver(DFLT_MEASURE_DRIVER, args.app_id, describe='--describe')
+    if metd.get('status', 'ok') != 'ok':
+        raise Exception('Measure driver failed with status "{}" and message "{}"'.format(
+            metd.get('status'), metd.get('message')))
 
     # FIXME: remove this hack for ab->perf
     metrics = metd.get('metrics')
     if metrics and 'perf' not in metrics and 'requests throughput' in metrics:
-        metrics['perf'] = metrics['requests throughput']    # use rq/sec as perf metric
+        # use rq/sec as perf metric
+        metrics['perf'] = metrics['requests throughput']
 
     # construct descriptor
     d = dict(
         application=envd.get('application', {}),
-        measurement = dict(metrics = metd.get('metrics', {}))
-        ) #FIXME: unify response
+        measurement=dict(metrics=metd.get('metrics', {}))
+    )  # FIXME: unify response
 
     print('DESCRIPTOR:', d)
 
