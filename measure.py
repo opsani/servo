@@ -86,24 +86,17 @@ class Measure(object):
 
         # Handle --describe
         if self.args.describe:
-            exit_code=0
             try:
                 metrics = self.describe()
                 out = {
-                   "status": "ok",
-                   "metrics": metrics,
+                    "status": "ok",
+                    "metrics": metrics,
                 }
+                print(json.dumps(out), flush=True)
+                sys.exit(0)
             except Exception as e:
-                out = {
-                   "status": 500,
-                   "reason": str(e)
-                }
-                exit_code=1
-
-            print(json.dumps(out), flush=True)
-            sys.exit(exit_code)
-
-        #print('MEASURE DRIVER: READING INPUT...') ##@#
+                self.print_measure_error(str(e))
+                raise
 
         # Parse input
         try:
@@ -222,5 +215,4 @@ class Measure(object):
         Handles SIGUSR1 signal
         '''
         self.debug("Received cancel signal", signal)
-
 
