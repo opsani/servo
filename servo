@@ -222,7 +222,8 @@ def run_driver(driver, app, req = None, describe = False, progress_cb: typing.Ca
                     # TODO: handle exception in json.loads?
                     raise
                 if "progress" in stdout:
-                    progress_cb(progress=stdout["progress"], message = stdout.get("message", None)) # FIXME stage/stageprogress ignored
+                    if progress_cb:
+                        progress_cb(progress=stdout["progress"], message = stdout.get("message", None)) # FIXME stage/stageprogress ignored
                 else: # should be the last line only (TODO: check only one non-progress line is output)
                     rsp = stdout
         if w:
