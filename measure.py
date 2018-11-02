@@ -20,12 +20,14 @@
 
 
 
+from threading import Timer
 import argparse
 import json
+import os
 import signal
+import subprocess
 import sys
 import time
-from threading import Timer
 
 ST_FAILED=500
 ST_BAD_REQUEST=400
@@ -216,3 +218,33 @@ class Measure(object):
         '''
         self.debug("Received cancel signal", signal)
 
+    ##################################################
+    #     HELPERS
+    ##################################################
+
+    # helper:  run a Bash shell command and raise an Exception on failure
+    # note:  if cmd is a string, this supports shell pipes, environment variable
+    # expansion, etc.  The burden of safety is entirely on the user.
+    def _run_command(self, cmd, pre=True):
+        cmd_type = 'Pre-command' if pre else 'Post-command'
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                             shell=True, executable='/bin/bash')
+        msg = "cmd '{}', exit code {}, stdout {}, stderr {}".format(cmd,
+                                                                    res.returncode, res.stdout, res.stderr)
+        assert res.returncode == 0, '{} failed:  {}'.format(cmd_type, msg)
+        self.debug('{}:  {}'.format(cmd_type, msg))
+
+    # helper:  run a Bash shell command with stdout/stderr directed to /dev/null
+    # and return the popen object
+    def _run_command_async(self, cmd):
+        proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL, shell=True, executable='/bin/bash',
+                                preexec_fn=os.setpgrp)
+        self.debug('Pre-command async:  {}'.format(cmd))
+        return proc
+
+    # Kills a async process started by _run_command_async(). 'proc' is the
+    # return value of _run_command_async()
+    def _kill_async_cmd(self, proc):
+        if proc is None: return
+        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
