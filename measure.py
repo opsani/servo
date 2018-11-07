@@ -247,4 +247,7 @@ class Measure(object):
     # return value of _run_command_async()
     def _kill_async_cmd(self, proc):
         if proc is None: return
-        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+        try:
+            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+        except Exception as e:
+            self.debug("Failed to kill async cmd", e)
