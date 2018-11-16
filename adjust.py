@@ -1,7 +1,8 @@
 from __future__ import print_function    # py2 compatibility
 
-import json
+from threading import Timer
 import argparse
+import json
 import sys
 
 
@@ -22,7 +23,7 @@ class Adjust(object):
        def adjust(self, data):
            ...
     if __name__ == '__main__':
-        foo = MyClass(VERSION, DESC, HAS_CANCEL)
+        foo = MyClass(VERSION, DESC, HAS_CANCEL, PROGRESS_INTERVAL)
         foo.run()
 
     '''
@@ -31,7 +32,7 @@ class Adjust(object):
     #      (unless you know what you are doing)
     ##################################################
 
-    def __init__(self, version, cli_desc, supports_cancel):
+    def __init__(self, version, cli_desc, supports_cancel, progress_interval=None):
 
         # Parse Args
         self.parser = argparse.ArgumentParser(description=cli_desc)
@@ -53,6 +54,10 @@ class Adjust(object):
         self.version = version
         self.app_id = self.args.app_id
         self.supports_cancel = supports_cancel
+        self.progress_interval = progress_interval
+        self.progress = 0
+        self.timer = None
+
 
     def run(self):
         if self.args.version:
@@ -98,6 +103,9 @@ class Adjust(object):
             )
             raise
 
+        # Start progress timer
+        self.start_progress_timer()
+
         # Adjust // TODO: print output??
         try:
             c = self.adjust.__code__.co_argcount
@@ -114,6 +122,43 @@ class Adjust(object):
                 str(e)
             )
             raise
+        finally:
+            self.stop_progress_timer()
+
+    def stop_progress_timer(self):
+        if self.timer:
+            self.timer.cancel()
+
+    def start_progress_timer(self):
+        self.stop_progress_timer()
+
+        if not self.progress_interval:
+            return
+
+        self.timer = Timer(self.progress_interval, self.print_progress)
+        self.timer.start()
+
+    def print_progress(
+            self,
+            message=None,
+            msg_index=None,
+            stage=None,
+            stageprogress=None):
+
+        data = {'progress': self.progress}
+
+        if message is not None:
+            data['message'] = message
+        if msg_index is not None:
+            data['msg_index'] = msg_index
+        if stage is not None:
+            data['stage'] = stage
+        if stageprogress is not None:
+            data['stageprogress'] = stageprogress
+
+        print(json.dumps(data), flush=True)
+        # Schedule the next progress update
+        self.start_progress_timer()
 
     def debug(self, *message):
         print(*message, flush=True, file=sys.stderr)
