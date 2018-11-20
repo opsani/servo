@@ -271,11 +271,14 @@ def request(event, param, retries = None, backoff = True):
     '''
     global args, session
 
+    retry_delay = 20 # seconds
+    if event == 'WHATS_NEXT': retry_delay = 1 # quick first-time retry - workaround
     ev = dict(event = event, param = param)
     while True:
         try:
             # TODO: add retries/timeout
             rsp = session.post(optune_url(args.account, args.app_id), json=ev)
+            if event == 'DESCRIPTION': session.close() # workaround - close session to let server restart
         except requests.exceptions.ConnectionError as e:
             exc = Exception('Server unavailable for event {} ({}: {}).'.format(event, type(e).__name__, str(e)))
         else:
@@ -289,7 +292,7 @@ def request(event, param, retries = None, backoff = True):
                     rsp_msg = json.loads(rsp_msg)['message'] # extract salient message if json formatted
                 except Exception:
                     pass # leave raw text
-                exc = Exception('Server rejected request with status {}: {}.'.format(rsp.status_code, rsp_msg))
+                exc = Exception('Server rejected request {} with status {}: {}.'.format(ev, rsp.status_code, rsp_msg))
             else:
                 try:
                     rsp_json = rsp.json()
@@ -313,9 +316,9 @@ def request(event, param, retries = None, backoff = True):
                 exc = Exception('No more retries left, failed to send {}.'.format(event))
                 raise exc
 
-        retry_delay = 20 # seconds
         print(str(exc), 'Waiting {} seconds to retry...\n'.format(retry_delay))
         time.sleep(retry_delay)   # wait for cloud service to recover; TODO add progressive backoff to ~1 minute
+        retry_delay = 20 # seconds
         continue
 
     if args.verbose:
