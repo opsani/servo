@@ -40,7 +40,6 @@ import time
 import argparse
 import subprocess
 import select
-import io
 import json
 import traceback        # for exception traceback print/capture
 import typing
@@ -60,7 +59,6 @@ class CancelDriverException(Exception):
     pass
 
 def optune_url(account, app_id):
-    global args
     if args.url:
         return args.url
     # return public cloud service and path
@@ -68,12 +66,11 @@ def optune_url(account, app_id):
     return 'https://api.optune.ai/accounts/{}/applications/{}/servo'.format(account, app_id)
 
 def measure(param):
-    global args
 
     print('measuring', param)
 
     # execute measurement driver and return result
-    rsp = run_driver(DFLT_MEASURE_DRIVER, args.app_id, req=param, progress_cb = partial(report_progress, 'MEASUREMENT', time.time()))
+    rsp = run_driver(DFLT_MEASURE_DRIVER, args.app_id, req=param, progress_cb=partial(report_progress, 'MEASUREMENT', time.time()))
     status = rsp.get('status', 'undefined')
     if status != 'ok':
         raise Exception('Measurement driver failed with status "{}" and message "{}"'.format(
@@ -88,15 +85,14 @@ def measure(param):
 
     print('measured ', metrics)
 
-    return dict(metrics = metrics)
+    return dict(metrics=metrics)
 
 def adjust(param):
-    global args
 
     print('adjusting', param)
 
     # execute adjustment driver and return result
-    rsp = run_driver(DFLT_ADJUST_DRIVER, args.app_id, req=param, progress_cb = partial(report_progress, 'ADJUSTMENT', time.time()))
+    rsp = run_driver(DFLT_ADJUST_DRIVER, args.app_id, req=param, progress_cb=partial(report_progress, 'ADJUSTMENT', time.time()))
     status = rsp.get('status', 'undefined')
     if status == 'ok':
         print('adjusted ok')
@@ -107,7 +103,6 @@ def adjust(param):
     return {}
 
 def describe():
-    global args
 
     print('describing')
 
@@ -144,7 +139,7 @@ def describe():
 # --- Helpers -----------------------------------------------------------------
 
 
-def run_driver(driver, app, req = None, describe = False, progress_cb: typing.Callable[..., None] = None):
+def run_driver(driver, app, req=None, describe=False, progress_cb: typing.Callable[..., None]=None):
     '''
     Execute external driver to perform adjustment or measurement - or just get a descriptor
     Parameters:
@@ -159,7 +154,6 @@ def run_driver(driver, app, req = None, describe = False, progress_cb: typing.Ca
                 - message: str, progress/stage message
                 - log: list[str], messages to be logged
     '''
-    global args
 
     if args.verbose:
         print('DRIVER REQUEST:', driver, req)
@@ -168,7 +162,7 @@ def run_driver(driver, app, req = None, describe = False, progress_cb: typing.Ca
 
     # test only FIXME@@@
     if progress_cb:
-        progress_cb(progress = 0, message = 'starting driver')
+        progress_cb(progress=0, message='starting driver')
 
     # construct command line
     cmd = [driver]
@@ -191,11 +185,11 @@ def run_driver(driver, app, req = None, describe = False, progress_cb: typing.Ca
     stderr = [] # collect all stderr here
     rsp = {"status": "nodata"} # in case driver outputs nothing at all
     wi = [proc.stdin]
-    ei = [proc.stdin, proc.stdout,proc.stderr]
+    ei = [proc.stdin, proc.stdout, proc.stderr]
     eof_stdout = False
     eof_stderr = False #
     while True:
-        r,w,e = select.select([proc.stdout,proc.stderr], wi, ei )
+        r, w, e = select.select([proc.stdout, proc.stderr], wi, ei)
         if eof_stdout and eof_stderr and proc.poll() is not None: # process exited and no more data
             break
         for h in r:
@@ -217,21 +211,21 @@ def run_driver(driver, app, req = None, describe = False, progress_cb: typing.Ca
                     continue # ignore blank lines (shouldn't be output, though)
                 try:
                     stdout = json.loads(stdout_line)
-                except Exception as x:
+                except Exception:
                     proc.terminate()
                     # TODO: handle exception in json.loads?
                     raise
                 if "progress" in stdout:
                     if progress_cb:
-                        progress_cb(progress=stdout["progress"], message = stdout.get("message", None)) # FIXME stage/stageprogress ignored
+                        progress_cb(progress=stdout["progress"], message=stdout.get("message", None)) # FIXME stage/stageprogress ignored
                 else: # should be the last line only (TODO: check only one non-progress line is output)
                     rsp = stdout
         if w:
-            l = min(getattr(select,'PIPE_BUF',512), len(stdin)) # write with select.PIPE_BUF bytes or less should not block
+            l = min(getattr(select, 'PIPE_BUF', 512), len(stdin)) # write with select.PIPE_BUF bytes or less should not block
             if not l: # done sending stdin
                 proc.stdin.close()
                 wi = []
-                ei = [proc.stdout,proc.stderr]
+                ei = [proc.stdout, proc.stderr]
             else:
                 proc.stdin.write(stdin[:l])
                 stdin = stdin[l:]
@@ -239,7 +233,7 @@ def run_driver(driver, app, req = None, describe = False, progress_cb: typing.Ca
 
     rc = proc.returncode
     if args.verbose or rc != 0:
-        print('DRIVER RETURNED:\n---stderr------------------\n{}\n----------------------\n'.format( (b"\n".join(stderr)).decode("UTF-8") ))  # use accumulated stderr
+        print('DRIVER RETURNED:\n---stderr------------------\n{}\n----------------------\n'.format(b"\n".join(stderr).decode("UTF-8")))  # use accumulated stderr
 
     # (nb: stderr is discarded TODO: consider capturing into annotation, if allowed)
     # err = (b"\n".join(stderr)).decode("UTF-8")
@@ -262,18 +256,18 @@ def run_driver(driver, app, req = None, describe = False, progress_cb: typing.Ca
 
     return rsp
 
-def request(event, param, retries = None, backoff = True):
+def request(event, param, retries=None, backoff=True):
     '''
     Send request to cloud service. Retry if it fails to connect.
     Setting retries to None means retry forever; 0 means no retries, other
     integer value defines the number of retries
     TODO: implement backoff - currently ignored
     '''
-    global args, session
 
     retry_delay = 20 # seconds
-    if event == 'WHATS_NEXT': retry_delay = 1 # quick first-time retry - workaround
-    ev = dict(event = event, param = param)
+    if event == 'WHATS_NEXT':
+        retry_delay = 1 # quick first-time retry - workaround
+    ev = dict(event=event, param=param)
     while True:
         try:
             # TODO: add retries/timeout
@@ -326,7 +320,6 @@ def request(event, param, retries = None, backoff = True):
     return rsp_json
 
 def delay():
-    global args
     if args.interactive:
         print('Press <Enter> to continue...', end='')
         sys.stdout.flush()
@@ -336,15 +329,13 @@ def delay():
     print()
 
 def exc_format(e):
-    if type(e) == type(Exception()):  # if it's just an Exception
+    if type(e) is Exception:  # if it's just an Exception
         return str(e) # print only the message but not the type
-    else:
-        return "{}: {}".format(type(e).__name__, str(e)) # print the exception type and message
+    return "{}: {}".format(type(e).__name__, str(e)) # print the exception type and message
 
 # --- Main --------------------------------------------------------------------
 
 def exec_command():
-    global args
 
     ev = ev_param = None
     cmd = request('WHATS_NEXT', None)
@@ -357,10 +348,10 @@ def exec_command():
     if c == 'DESCRIBE':
         p = cmd['param']
         try:
-            v = dict(descriptor=describe(), status = 'ok')
+            v = dict(descriptor=describe(), status='ok')
         except Exception as e:
             traceback.print_exc()
-            v = dict(status = 'failed', message = exc_format(e))
+            v = dict(status='failed', message=exc_format(e))
         if args.verbose or args.interactive:
             print('DESCRIBE {}: will return {}.'.format(p, v), end=' ')
         ev = 'DESCRIPTION'
@@ -371,7 +362,7 @@ def exec_command():
             v = measure(p)
         except Exception as e:
             traceback.print_exc()
-            v = dict(status = 'failed', message = exc_format(e))
+            v = dict(status='failed', message=exc_format(e))
         if args.verbose or args.interactive:
             print('MEASURE {}: will return {}.'.format(p, v), end=' ')
         ev = 'MEASUREMENT'
@@ -383,13 +374,13 @@ def exec_command():
             # 'application') which also includes a top-level 'control' key, and
             # pass this to adjust()
             new_dict = p['state'].copy()
-            new_dict['control'] = p.get('control',{})
+            new_dict['control'] = p.get('control', {})
             v = adjust(new_dict)
             if 'state' not in v: # if driver didn't return state, assume it is what was requested
                 v['state'] = p['state']
         except Exception as e:
             traceback.print_exc()
-            v = dict(status = 'failed', message = exc_format(e))
+            v = dict(status='failed', message=exc_format(e))
         if args.verbose or args.interactive:
             print('ADJUST to {}: will return {}.'.format(p, v), end=' ')
         ev = 'ADJUSTMENT'
@@ -412,7 +403,7 @@ def exec_command():
     if ev:
         request(ev, ev_param)
 
-def report_progress(operation : str, ts_started: float, progress : int, time_remain : int = None, message : str = None, log : list = None) -> None:
+def report_progress(operation: str, ts_started: float, progress: int, time_remain: int = None, message: str = None, log: list = None) -> None:
     '''
     Report progress of driver operation
     Parameters:
@@ -436,19 +427,19 @@ def report_progress(operation : str, ts_started: float, progress : int, time_rem
         return
 
     # prepare parameters (progress field must be present, even if None)
-    param = dict(progress = progress, runtime = int(time.time() - ts_started))
+    param = dict(progress=progress, runtime=int(time.time() - ts_started))
     set_if(param, 'time_remain', time_remain)
     set_if(param, 'message'    , message)
     set_if(param, 'log'        , log)
 
     # send event (limited retries)
-    rsp = request(operation, param, retries = 1, backoff = False)
+    rsp = request(operation, param, retries=1, backoff=False)
     #if rsp.xxx:
     #   raise CancelDriverException('message')
     return
 
 
-def signal_handler(sig_num, frame):
+def signal_handler(sig_num, unused_frame):
     # restore original signal handler (to prevent reentry)
     signal.signal(sig_num, signal.SIG_DFL)
 
@@ -463,7 +454,7 @@ def signal_handler(sig_num, frame):
 
     # send GOODBYE event (best effort)
     try:
-        request('GOODBYE', dict(reason = sig_name), retries=3, backoff = False)
+        request('GOODBYE', dict(reason=sig_name), retries=3, backoff=False)
     except Exception as e:
         print('Warning: failed to send GOODBYE: {}. Exiting anyway'.format(str(e)))
 
@@ -482,8 +473,8 @@ if __name__ == '__main__':
     parser.add_argument('--account', help='Specify account name to override OPTUNE_ACCOUNT env. var', default=os.environ.get('OPTUNE_ACCOUNT'))
     parser.add_argument('--url', help='Specify url to use instead of the default Optune API', default=None)
     parser.add_argument('--auth-token',
-        help='Specify path to a file where the authentication token is stored',
-        default=DFLT_AUTH_FILE)
+                        help='Specify path to a file where the authentication token is stored',
+                        default=DFLT_AUTH_FILE)
     parser.add_argument('--no-auth', help='Disable authentication', action='store_true')
 
     args = parser.parse_args()
@@ -513,7 +504,7 @@ if __name__ == '__main__':
     # announce
     print('Saying HELLO.', end=' ')
     delay()
-    request('HELLO', dict(agent = args.agent))
+    request('HELLO', dict(agent=args.agent))
 
     # run in servo mode
     while True:
