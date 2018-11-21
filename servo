@@ -461,7 +461,19 @@ def signal_handler(sig_num, unused_frame):
     sys.exit(0) # abort now
 
 
+def graceful_stop_handler(sig_num, unused_frame):
+    """handle signal for graceful termination - simply set a flag to have the main loop exit after the current operation is completed"""
+    global stop_flag
+    stop_flag = "exit"
+
+def graceful_restart_handler(sig_num, unused_frame):
+    """handle signal for restart - simply set a flag to have the main loop exit and restart the process after the current operation is completed"""
+    global stop_flag
+    stop_flag = "restart"
+
 if __name__ == '__main__':
+
+    stop_flag = None
 
     # parse command line
     parser = argparse.ArgumentParser(description='Servo for Optune by Opsani')
@@ -486,6 +498,8 @@ if __name__ == '__main__':
     # intercept SIGINT to provide graceful, traceback-less Ctrl-C/SIGTERM handling
     signal.signal(signal.SIGTERM, signal_handler) # container kill
     signal.signal(signal.SIGINT, signal_handler) # Ctrl-C
+    signal.signal(signal.SIGUSR1, graceful_stop_handler)
+    signal.signal(signal.SIGHUP, graceful_restart_handler)
 
     # create requests session so that we can set authentication in one place
     session = requests.Session()
@@ -507,8 +521,19 @@ if __name__ == '__main__':
     request('HELLO', dict(agent=args.agent))
 
     # run in servo mode
-    while True:
+    while not stop_flag:
         try:
             exec_command()
         except Exception as e:
             traceback.print_exc()
+
+    try:
+        request('GOODBYE', dict(reason=stop_flag), retries=3, backoff=False)
+    except Exception as e:
+        print('Warning: failed to send GOODBYE: {}. Exiting anyway'.format(str(e)))
+
+    if stop_flag == "exit":
+        sys.exit(0)
+
+    # any other value: restart
+    os.execv(sys.argv[0], sys.argv)
