@@ -131,6 +131,10 @@ def describe():
         measurement=dict(metrics=metd.get('metrics', {}))
     )  # FIXME: unify response
 
+    # add user-provided settings, if defined
+    if OPTUNE_PERF:
+       d["optimization"] = { "perf" : OPTUNE_PERF }
+
     print('DESCRIPTOR:', d)
 
     return d
@@ -472,6 +476,18 @@ def graceful_restart_handler(sig_num, unused_frame):
     stop_flag = "restart"
 
 if __name__ == '__main__':
+
+    # user settings from env variables
+    OPTUNE_PERF = os.environ.get("OPTUNE_PERF", None)
+    if OPTUNE_PERF: # check that it is a valid Python expression
+        try:
+            compile(OPTUNE_PERF, "env(OPTUNE_PERF)", "eval")
+        except Exception: # catch exception and print only part of the traceback (so we don't show traceback for this file/line, only the string itself)
+            import traceback
+            s = traceback.format_exc(limit=0)
+            print("Error in OPTUNE_PERF environment setting:")
+            print("\n".join(s.split("\n")[2:]), file=sys.stderr)
+            sys.exit(1)
 
     stop_flag = None
 
