@@ -53,6 +53,7 @@ class Measure(object):
         self.supports_cancel = supports_cancel
         self.progress_interval = progress_interval
         self.progress = 0
+        self.progress_message = None
         self.timer = None
 
 
@@ -154,9 +155,11 @@ class Measure(object):
             stage=None,
             stageprogress=None):
 
-        data = { 'progress' : self.progress }
+        data = dict(
+            progress=self.progress,
+            message=message if (message is not None) else self.progress_message,
+        )
 
-        if message is not None       : data['message']       = message
         if msg_index is not None     : data['msg_index']     = msg_index
         if stage is not None         : data['stage']         = stage
         if stageprogress is not None : data['stageprogress'] = stageprogress
