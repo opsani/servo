@@ -43,8 +43,8 @@ class Measure(object):
         # Parse Args
         self.parser = argparse.ArgumentParser(description=cli_desc)
 
-        self.parser.add_argument('--info', help='Don\'t measure, instead print driver info and exit', default=False, action='store_true')
         self.parser.add_argument('app_id', help='Name/ID of the application to measure', nargs='?')
+        self.parser.add_argument('--info', help='Don\'t measure, instead print driver info and exit', default=False, action='store_true')
         self.parser.add_argument('--describe', help='Don\'t measure, instead print a description of what can be measured for this application and exit', default=False, action='store_true')
         self.args = self.parser.parse_args()
 
@@ -115,6 +115,7 @@ class Measure(object):
         # Setup signal handlers
         if self.supports_cancel:
             signal.signal(signal.SIGUSR1, self.handle_cancel)
+            signal.signal(signal.SIGINT, self.handle_cancel)
 
         # Start progress timer
         self.start_progress_timer()
