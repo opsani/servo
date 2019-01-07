@@ -10,6 +10,14 @@ The servo core handles the protocol between the Opsani Optune service and a part
 
 Typically, the servo pieces are packaged together, with any dependencies, in a Docker container. While this is customary, it is not required; the 3 together can be packaged in any way that is convenient for you to deploy and operate.
 
+The following sections describe what servos are available and how to use them:
+
+  * [Configuration](#configuration)
+  * [Using ready servos](#using-ready-servos)
+  * [Available servo drivers](#available-servo-drivers)
+    * [Adjust drivers for supported environments and CI/CD systems (e.g., Kubernetes, Mesos, Spinnaker, gitops)](#adjust-drivers)
+    * [Measurement drivers for supported monitoring systems and benchmarks (e.g., Prometheus, Datadog, SignalFX)](#measurement-drivers)
+
 ## Configuration
 
 ### Command line
@@ -84,12 +92,12 @@ docker run -d --restart=always \
 
 Servo drivers are usually provided as open source projects in github. Here is a list of the currently known Optune servo drivers:
 
-### Adjust drivers and links
+### Adjust drivers
 
 | *Environment* | *Description* |
 | --- | --- |
 | [k8s](github.com/opsani/servo-k8s) | Kubernetes container orchestration: deployments in a namespace, with autodiscovery. Works with Kubernetes and OpenShift |
-| [gitops](github.com/opsani/servo-gitops) | Gitops deployment (immutable infrastructre; works with Kubernetes, Mesos and OpenShift, as well as with any YAML-based deployment manifest) |
+| [gitops](github.com/opsani/servo-gitops) | Gitops deployment (immutable infrastructre; works with Kubernetes, Mesos, OpenShift and PaaSTA, as well as with any YAML-based deployment manifest) |
 | [ec2asg](github.com/opsani/servo-ec2asg) | Amazon Web Services deployments based on auto-scaling groups of EC2 instances |
 | [spinnaker](github.com/opsani/servo-spinnaker) | Spinnaker continuous deployment |
 | [tomcat](github.com/opsani/servo-tomcat) | Tomcat Java service (bash startup script) |
