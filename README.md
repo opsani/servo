@@ -60,6 +60,7 @@ The following complete servos have been packaged and made available as container
 | *Repository* | *Image on Docker Hub* |
 | --- | --- |
 | [servo-k8s-datadog](github.com/opsani/servo-k8s-datadog) | `opsani/servo-k8s-datadog` |
+| [servo-k8s-newrelic](github.com/opsani/servo-k8s-newrelic) | `opsani/servo-k8s-newrelic` |
 | [servo-k8s-sfx](github.com/opsani/servo-k8s-sfx) | `opsani/servo-k8s-sfx` |
 | [servo-k8s-ab](github.com/opsani/servo-k8s-ab) | `opsani/servo-k8s-ab` |
 | [servo-gitops-sfx](github.com/opsani/servo-gitops-sfx) | `opsani/servo-gitops-sfx` |
@@ -113,6 +114,7 @@ Multiple adjust drivers can be combined in a single servo using the [aggregation
 | --- | --- |
 | [prom](github.com/opsani/servo-prom) | Prometheus |
 | [datadog](github.com/opsani/servo-datadog) | Datadog (supports multi-measurement protocol extension) |
+| [newrelic](github.com/opsani/servo-newrelic) | NewRelic APM (supports multi-measurement protocol extension) |
 | [sfx](github.com/opsani/servo-sfx) | SignalFX |
 | [wavefront](github.com/opsani/servo-wavefront) | Wavefront |
 | [ab](github.com/opsani/servo-ab) | Apache Benchmark (combined load generator and measurement driver) |
