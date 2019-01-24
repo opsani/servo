@@ -59,16 +59,16 @@ The following complete servos have been packaged and made available as container
 
 | *Repository* | *Image on Docker Hub* |
 | --- | --- |
-| [servo-k8s-datadog](github.com/opsani/servo-k8s-datadog) | `opsani/servo-k8s-datadog` |
-| [servo-k8s-newrelic](github.com/opsani/servo-k8s-newrelic) | `opsani/servo-k8s-newrelic` |
-| [servo-k8s-sfx](github.com/opsani/servo-k8s-sfx) | `opsani/servo-k8s-sfx` |
-| [servo-k8s-ab](github.com/opsani/servo-k8s-ab) | `opsani/servo-k8s-ab` |
-| [servo-gitops-sfx](github.com/opsani/servo-gitops-sfx) | `opsani/servo-gitops-sfx` |
-| [servo-javaservice-datadog](github.com/opsani/servo-javaservice-datadog) | `opsani/servo-javaservice-datadog` |
-| [servo-spinnaker-wavefront](github.com/opsani/servo-spinnaker-wavefront) | `opsani/servo-spinnaker-wavefront` |
-| [servo-tomcat-wavefront](github.com/opsani/servo-tomcat-wavefront) | `opsani/servo-tomcat-wavefront` |
-| [servo-skopos-ab](github.com/opsani/servo-skopos-ab) | `opsani/servo-skopos-ab` |
-| [servo-rancher-ab](github.com/opsani/servo-rancher-ab) | `opsani/servo-rancher-ab` |
+| [servo-k8s-datadog](https://github.com/opsani/servo-k8s-datadog) | `opsani/servo-k8s-datadog` |
+| [servo-k8s-newrelic](https://github.com/opsani/servo-k8s-newrelic) | `opsani/servo-k8s-newrelic` |
+| [servo-k8s-sfx](https://github.com/opsani/servo-k8s-sfx) | `opsani/servo-k8s-sfx` |
+| [servo-k8s-ab](https://github.com/opsani/servo-k8s-ab) | `opsani/servo-k8s-ab` |
+| [servo-gitops-sfx](https://github.com/opsani/servo-gitops-sfx) | `opsani/servo-gitops-sfx` |
+| [servo-javaservice-datadog](https://github.com/opsani/servo-javaservice-datadog) | `opsani/servo-javaservice-datadog` |
+| [servo-spinnaker-wavefront](https://github.com/opsani/servo-spinnaker-wavefront) | `opsani/servo-spinnaker-wavefront` |
+| [servo-tomcat-wavefront](https://github.com/opsani/servo-tomcat-wavefront) | `opsani/servo-tomcat-wavefront` |
+| [servo-skopos-ab](https://github.com/opsani/servo-skopos-ab) | `opsani/servo-skopos-ab` |
+| [servo-rancher-ab](https://github.com/opsani/servo-rancher-ab) | `opsani/servo-rancher-ab` |
 
 ### Deploying servos to Kubernetes
 
@@ -97,14 +97,14 @@ Servo drivers are usually provided as open source projects in github. Here is a 
 
 | *Environment* | *Description* |
 | --- | --- |
-| [k8s](github.com/opsani/servo-k8s) | Kubernetes container orchestration: deployments in a namespace, with autodiscovery. Works with Kubernetes and OpenShift |
-| [gitops](github.com/opsani/servo-gitops) | Gitops deployment (immutable infrastructre; works with Kubernetes, Mesos, OpenShift and PaaSTA, as well as with any YAML-based deployment manifest) |
-| [ec2asg](github.com/opsani/servo-ec2asg) | Amazon Web Services deployments based on auto-scaling groups of EC2 instances |
-| [spinnaker](github.com/opsani/servo-spinnaker) | Spinnaker continuous deployment |
-| [tomcat](github.com/opsani/servo-tomcat) | Tomcat Java service (bash startup script) |
-| [javaservice](github.com/opsani/servo-javaservice) | Java service (Linux systemd service) |
-| [skopos](github.com/opsani/servo-skopos) | Skopos continuous deployment |
-| [rancher](github.com/opsani/servo-rancher) | Rancher 1.x container orchestration (for Rancher 2.x+, use the k8s driver) |
+| [k8s](https://github.com/opsani/servo-k8s) | Kubernetes container orchestration: deployments in a namespace, with autodiscovery. Works with Kubernetes and OpenShift |
+| [gitops](https://github.com/opsani/servo-gitops) | Gitops deployment (immutable infrastructre; works with Kubernetes, Mesos, OpenShift and PaaSTA, as well as with any YAML-based deployment manifest) |
+| [ec2asg](https://github.com/opsani/servo-ec2asg) | Amazon Web Services deployments based on auto-scaling groups of EC2 instances |
+| [spinnaker](https://github.com/opsani/servo-spinnaker) | Spinnaker continuous deployment |
+| [tomcat](https://github.com/opsani/servo-tomcat) | Tomcat Java service (bash startup script) |
+| [javaservice](https://github.com/opsani/servo-javaservice) | Java service (Linux systemd service) |
+| [skopos](https://github.com/opsani/servo-skopos) | Skopos continuous deployment |
+| [rancher](https://github.com/opsani/servo-rancher) | Rancher 1.x container orchestration (for Rancher 2.x+, use the k8s driver) |
 
 Multiple adjust drivers can be combined in a single servo using the [aggregation](github.com/opsani/servo-agg) driver.
 
@@ -112,12 +112,12 @@ Multiple adjust drivers can be combined in a single servo using the [aggregation
 
 | *Tool* | *Description* |
 | --- | --- |
-| [prom](github.com/opsani/servo-prom) | Prometheus |
-| [datadog](github.com/opsani/servo-datadog) | Datadog (supports multi-measurement protocol extension) |
-| [newrelic](github.com/opsani/servo-newrelic) | NewRelic APM (supports multi-measurement protocol extension) |
-| [sfx](github.com/opsani/servo-sfx) | SignalFX |
-| [wavefront](github.com/opsani/servo-wavefront) | Wavefront |
-| [ab](github.com/opsani/servo-ab) | Apache Benchmark (combined load generator and measurement driver) |
+| [prom](https://github.com/opsani/servo-prom) | Prometheus |
+| [datadog](https://github.com/opsani/servo-datadog) | Datadog (supports multi-measurement protocol extension) |
+| [newrelic](https://github.com/opsani/servo-newrelic) | NewRelic APM (supports multi-measurement protocol extension) |
+| [sfx](https://github.com/opsani/servo-sfx) | SignalFX |
+| [wavefront](https://github.com/opsani/servo-wavefront) | Wavefront |
+| [ab](https://github.com/opsani/servo-ab) | Apache Benchmark (combined load generator and measurement driver) |
 | hammerdb | HammerDB benchmark (contact support for access to preliminary version of this driver) |
 
 ## Creating user-defined servos
