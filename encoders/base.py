@@ -15,7 +15,7 @@ def q(v):
     return '"{}"'.format(v)
 
 
-class Setting(ABC):
+class BaseSetting(ABC):
     name = None
     type = None
     allowed_options = {'default'}
@@ -57,7 +57,7 @@ class Setting(ABC):
         raise NotImplementedError()
 
 
-class RangeSetting(Setting, ABC):
+class BaseRangeSetting(BaseSetting, ABC):
     can_relax = True
     type = 'range'
     unit = ''
