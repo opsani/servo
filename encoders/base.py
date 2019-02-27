@@ -4,11 +4,6 @@ from abc import ABC
 
 EncoderException = type('EncoderException', (BaseException,), {})
 
-# Developr-related exceptions
-SettingEncoderException = type('SettingEncoderException', (EncoderException,), {})
-NoValueEncoderSettingException = type('NoValueEncoderSettingException', (SettingEncoderException,), {})
-UnsupportedSettingException = type('UnsupportedSettingException', (SettingEncoderException,), {})
-
 # User-related exceptions
 EncoderConfigException = type('EncoderConfigException', (EncoderException,), {})
 EncoderRuntimeException = type('EncoderRuntimeException', (EncoderException,), {})
