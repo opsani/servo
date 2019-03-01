@@ -15,7 +15,7 @@ def q(v):
     return '"{}"'.format(v)
 
 
-class BaseSetting(ABC):
+class Setting(ABC):
     name = None
     type = None
     allowed_options = {'default'}
@@ -57,18 +57,18 @@ class BaseSetting(ABC):
         raise NotImplementedError()
 
 
-class BaseRangeSetting(BaseSetting, ABC):
-    can_relax = True
+class RangeSetting(Setting, ABC):
+    relaxable = True
     type = 'range'
     unit = ''
 
     def __init__(self, config):
         self.allowed_options.update({'min', 'max', 'step'})
         super().__init__(config)
-        self.min = config.get('min', getattr(self, 'min', None))
-        self.max = config.get('max', getattr(self, 'max', None))
-        self.step = config.get('step', getattr(self, 'step', None))
-        self.default = config.get('default', getattr(self, 'default', None))
+        self.min = self.config.get('min', getattr(self, 'min', None))
+        self.max = self.config.get('max', getattr(self, 'max', None))
+        self.step = self.config.get('step', getattr(self, 'step', None))
+        self.default = self.config.get('default', getattr(self, 'default', None))
 
     def check_config(self):
         super().check_config()
@@ -80,25 +80,25 @@ class BaseRangeSetting(BaseSetting, ABC):
         step = self.config.get('step', default_step)
         if minv is None:
             raise SettingConfigException(
-                'No min value configured for setting {} in java-opts encoder.'.format(q(self.name)))
+                'No min value configured for setting {} in jvm encoder.'.format(q(self.name)))
         if maxv is None:
             raise SettingConfigException(
-                'No max value configured for setting {} in java-opts encoder.'.format(q(self.name)))
+                'No max value configured for setting {} in jvm encoder.'.format(q(self.name)))
         if step is None:
             raise SettingConfigException(
-                'No step value configured for setting {} in java-opts encoder.'.format(q(self.name)))
+                'No step value configured for setting {} in jvm encoder.'.format(q(self.name)))
         if not isinstance(minv, (int, float)):
-            raise SettingConfigException('Min value must be a number in setting {} of java-opts encoder. '
+            raise SettingConfigException('Min value must be a number in setting {} of jvm encoder. '
                                          'Found {}.'.format(q(self.name), q(minv)))
         if not isinstance(maxv, (int, float)):
-            raise SettingConfigException('Max value must be a number in setting {} of java-opts encoder. '
+            raise SettingConfigException('Max value must be a number in setting {} of jvm encoder. '
                                          'Found {}.'.format(q(self.name), q(maxv)))
         if not isinstance(step, (int, float)):
-            raise SettingConfigException('Step value must be a number in setting {} of java-opts encoder. '
+            raise SettingConfigException('Step value must be a number in setting {} of jvm encoder. '
                                          'Found {}.'.format(q(self.name), q(step)))
         if minv > maxv:
             raise SettingConfigException('Lower boundary is higher than upper boundary in setting {} '
-                                         'of java-opts encoder.'.format(q(self.name)))
+                                         'of jvm encoder.'.format(q(self.name)))
         if minv != maxv:
             if step < 0:
                 raise SettingConfigException('Step for setting {} must be a positive number.'
@@ -111,7 +111,7 @@ class BaseRangeSetting(BaseSetting, ABC):
                 'Step value for setting {} must allow to get from {} to {} in equal steps. Its current value is {}. '
                 'The size of the last step would be {}.'.format(q(self.name), minv, maxv, step, (maxv - minv) % step))
         # Relaxation of boundaries
-        if self.can_relax is False:
+        if self.relaxable is False:
             if default_min is None:
                 raise NotImplementedError('Default min value for setting {} must be configured '
                                           'to disallow its relaxation.'.format(q(self.name)))
@@ -163,7 +163,7 @@ class BaseRangeSetting(BaseSetting, ABC):
         return value
 
 
-class BaseEncoder(ABC):
+class Encoder(ABC):
 
     def describe(self):
         raise NotImplementedError()
@@ -175,37 +175,41 @@ class BaseEncoder(ABC):
         raise NotImplementedError()
 
 
-def load_encoder(encoder_name):
-    if not isinstance(encoder_name, str):
-        return encoder_name
-    return importlib.import_module('encoders.{}'.format(encoder_name), 'encoders').Encoder
+def load_encoder(encoder):
+    if isinstance(encoder, str):
+        try:
+            return importlib.import_module('encoders.{}'.format(encoder)).Encoder
+        except ImportError:
+            raise ImportError('Unable to import encoder {}'.format(encoder))
+        except AttributeError:
+            raise AttributeError('Were not able to import encoder\'s class from encoders.{}'.format(encoder))
+    return encoder
 
 
 def validate_config(config):
     if config is None:
         config = {}
     if not isinstance(config, dict):
-        raise EncoderConfigException('Configuration object for java-opts encoder is expected to be '
-                                     'of a dictionary type')
+        raise EncoderConfigException('Configuration object for jvm encoder is expected to be a dictionary')
+    if not config.get('name'):
+        raise EncoderConfigException('No encoder name specified')
     return config
 
 
-def encode(encoder_klass_or_name, config, values):
-    encoder_klass = load_encoder(encoder_klass_or_name)
+def encode(config, values):
     config = validate_config(config)
+    encoder_klass = load_encoder(config['name'])
     encoder = encoder_klass(config)
     settings = encoder.describe()
-    encodable = {}
-    for setting_name in settings.keys():
-        encodable[setting_name] = values.get(setting_name)
-    return encoder.encode_multi(encodable), set(settings)
+    encodable = {name: values.get(name) for name in settings.keys()}
+    return encoder.encode_multi(encodable), set(encodable)
 
 
-def describe(encoder_klass_or_name, config, data):
-    encoder_klass = load_encoder(encoder_klass_or_name)
+def describe(config, data):
     config = validate_config(config)
+    encoder_klass = load_encoder(config['name'])
     encoder = encoder_klass(config)
-    values = encoder.decode_multi(data)
-    descriptor = encoder.describe()
-    descriptor = dict((name, {**setting, **values[name]}) for name, setting in descriptor.items())
+    settings = encoder.describe()
+    decoded = encoder.decode_multi(data)
+    descriptor = {name: {**setting, 'value': decoded[name]} for name, setting in settings.items()}
     return descriptor
