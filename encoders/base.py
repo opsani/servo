@@ -59,6 +59,7 @@ class Setting(ABC):
 
 class RangeSetting(Setting, ABC):
     relaxable = True
+    freeze_range = False
     type = 'range'
     unit = ''
 
@@ -110,6 +111,20 @@ class RangeSetting(Setting, ABC):
             raise SettingConfigException(
                 'Step value for setting {} must allow to get from {} to {} in equal steps. Its current value is {}. '
                 'The size of the last step would be {}.'.format(q(self.name), minv, maxv, step, (maxv - minv) % step))
+        # Freeze range for change though config
+        if self.freeze_range:
+            if default_min is None:
+                raise NotImplementedError('Min value for setting {} must be configured to allow '
+                                          'freeze of the range.'.format(q(self.name)))
+            if default_max is None:
+                raise NotImplementedError('Max value for setting {} must be configured to allow '
+                                          'freeze of the range.'.format(q(self.name)))
+            if default_step is None:
+                raise NotImplementedError('Max value for setting {} must be configured to allow '
+                                          'freeze of the range.'.format(q(self.name)))
+            c = self.config
+            if c.get('min') or c.get('max') or c.get('step'):
+                raise SettingConfigException('Cannot change min, max or step in setting {}.'.format(q(self.name)))
         # Relaxation of boundaries
         if self.relaxable is False:
             if default_min is None:
