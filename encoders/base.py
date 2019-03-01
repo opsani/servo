@@ -111,7 +111,7 @@ class RangeSetting(Setting, ABC):
             raise SettingConfigException(
                 'Step value for setting {} must allow to get from {} to {} in equal steps. Its current value is {}. '
                 'The size of the last step would be {}.'.format(q(self.name), minv, maxv, step, (maxv - minv) % step))
-        # Freeze range for change though config
+        # Freeze range for change from config
         if self.freeze_range:
             if default_min is None:
                 raise NotImplementedError('Min value for setting {} must be configured to allow '
