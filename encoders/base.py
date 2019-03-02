@@ -195,7 +195,7 @@ def load_encoder(encoder):
         try:
             return importlib.import_module('encoders.{}'.format(encoder)).Encoder
         except ImportError:
-            raise ImportError('Unable to import encoder {}'.format(encoder))
+            raise ImportError('Unable to import encoder {}'.format(q(encoder)))
         except AttributeError:
             raise AttributeError('Were not able to import encoder\'s class from encoders.{}'.format(encoder))
     return encoder
