@@ -180,13 +180,72 @@ class RangeSetting(Setting, ABC):
 
 class Encoder(ABC):
 
+    def __init__(self, config):
+        self.config = config
+
     def describe(self):
+        """
+        Returns available settings and their respective limits based on provided configuration at the initialization stage.
+
+        Only to be implemented for multi-value encoders.
+
+        Example:
+            {
+                "GCTimeRatio": {
+                    "min": 1,
+                    "max": 99.999,
+                    "unit": "ratio",
+                },
+                "InitialHeapSize": {
+                    "min": 128,
+                    "max": 6144,
+                    "unit": "megabytes",
+                },
+                "MaximumHeapSize": {
+                    "min": 6144,
+                    "max": 12288,
+                    "unit": "megabytes",
+                }
+            }
+
+
+        :return: Dictionary of available setting names as keys and their respective limits as values as a dictionary.
+        """
         raise NotImplementedError()
 
     def encode_multi(self, values, expected_type=None):
+        """
+        Converts a dictionary of setting names and their respective values, where values are dictionaries containing
+        at least one key - "value".
+
+        Only to be implemented for multi-value encoders.
+
+        Example:
+            encode({"GCTimeRatio": {"value": 35},
+                    "InitialHeapSize": {"value": 512},
+                    "MaximumHeapSize": {"value": 2048}}) will produce "-XX:GCTimeRatio=35 -Xms512mb -Xmx2g"
+
+
+        :param values: Dictionary of setting names and their respective values.
+        :param expected_type: Any value for encoder to make a decision on what to return.
+        :return: Primitive output data.
+        """
         raise NotImplementedError()
 
     def decode_multi(self, data):
+        """
+        Converts a single primitive data type into a dictionary of setting names and their respective values.
+
+        Only to be implemented for multi-value encoders.
+
+        Example:
+            decode("-XX:GCTimeRatio=35 -Xms512mb -Xmx2g")
+            will produce {"GCTimeRatio": 35, "InitialHeapSize": 512, "MaximumHeapSize": 2048}
+
+
+        :param data: Encoded primitive type data to transform back to its decoded dictionary format.
+        :return: Dictionary of settings and their respective values.
+        """
         raise NotImplementedError()
 
 
@@ -212,6 +271,36 @@ def validate_config(config):
 
 
 def encode(config, values, expected_type=None):
+    """
+    Helper function. Encodes a dictionary of setting names and their respective values (in the form of a
+    dictionary with at least one key - "value") using encoder provided in the folder "encoders/" and located using
+    the value of the key "name" from the config argument.
+
+    Workflow:
+      1. Takes encoder section dictionary from config and a dictionary of input data to encode.
+      2. Calls an encoder by its name from "encoders/" folder passing it requested input data.
+      3. Returns the output into the place of interest.
+
+    Config example (yaml):
+        a: 1
+        b: 2
+        c:
+            d: False
+        settings:
+            x:
+                min: 1
+                max: 5
+                step: 1
+                default: 2
+            y:
+                min: 1
+                step: 2
+
+    :param config: encoder section dictionary of configuration and requested settings
+    :param values: Dictionary with values to encode ({"setting": {"value": 1}})
+    :param expected_type: Any value telling the encoder in what format to return the encoded values.
+    :return: Encoded values of expected type, and a set of encoded setting names
+    """
     config = validate_config(config)
     encoder_klass = load_encoder(config['name'])
     encoder = encoder_klass(config)
@@ -226,6 +315,14 @@ def encode(config, values, expected_type=None):
 
 
 def describe(config, data):
+    """
+    Helper function. Given configuration dictionary with a list of requested settings returns their respective limits
+    and current values provided in argument "data".
+
+    :param config: See function `encode` for details.
+    :param data: Seee method `describe` of class Encoder for details
+    :return: Available settings with their respective limits and current values.
+    """
     config = validate_config(config)
     encoder_klass = load_encoder(config['name'])
     encoder = encoder_klass(config)
