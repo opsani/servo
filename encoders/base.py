@@ -216,7 +216,7 @@ def encode(config, values):
     encoder_klass = load_encoder(config['name'])
     encoder = encoder_klass(config)
     settings = encoder.describe()
-    encodable = {name: values.get(name) for name in settings.keys()}
+    encodable = {name: values.get(name, {}).get('value') for name in settings.keys()}
     return encoder.encode_multi(encodable), set(encodable)
 
 
