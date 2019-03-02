@@ -183,7 +183,7 @@ class Encoder(ABC):
     def describe(self):
         raise NotImplementedError()
 
-    def encode_multi(self, values):
+    def encode_multi(self, values, expected_type=None):
         raise NotImplementedError()
 
     def decode_multi(self, data):
@@ -211,13 +211,18 @@ def validate_config(config):
     return config
 
 
-def encode(config, values):
+def encode(config, values, expected_type=None):
     config = validate_config(config)
     encoder_klass = load_encoder(config['name'])
     encoder = encoder_klass(config)
     settings = encoder.describe()
     encodable = {name: values.get(name, {}).get('value') for name in settings.keys()}
-    return encoder.encode_multi(encodable), set(encodable)
+    config_expected_type = config.get('expected_type')
+    if expected_type and config_expected_type:
+        raise EncoderConfigException('Cannot set `expected_type` both in the config and in the driver.\n'
+                                     'Got from the config: {}.\nGot from the driver: {}.'
+                                     ''.format(q(config_expected_type), q(expected_type)))
+    return encoder.encode_multi(encodable, expected_type=expected_type or config_expected_type), set(encodable)
 
 
 def describe(config, data):
