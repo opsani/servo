@@ -155,8 +155,6 @@ class RangeSetting(Setting, ABC):
             'step': self.step,
             'unit': self.unit,
         }
-        if self.default is not None:
-            descr['default'] = self.default
         return self.name, descr
 
     def validate_value(self, value):
