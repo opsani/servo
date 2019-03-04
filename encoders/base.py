@@ -20,7 +20,7 @@ class Setting(ABC):
     type = None
     allowed_options = {'default'}
 
-    def __init__(self, config):
+    def __init__(self, config=None):
         if not config:
             config = {}
         self.config = config
@@ -63,7 +63,7 @@ class RangeSetting(Setting, ABC):
     type = 'range'
     unit = ''
 
-    def __init__(self, config):
+    def __init__(self, config=None):
         self.allowed_options.update({'min', 'max', 'step'})
         super().__init__(config)
         self.min = self.config.get('min', getattr(self, 'min', None))
