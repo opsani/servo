@@ -318,7 +318,7 @@ def describe(config, data):
     and current values provided in argument "data".
 
     :param config: See function `encode` for details.
-    :param data: Seee method `describe` of class Encoder for details
+    :param data: See method `describe` of class Encoder for details
     :return: Available settings with their respective limits and current values.
     """
     config = validate_config(config)
