@@ -197,3 +197,73 @@ class Adjust(object):
         Handles SIGUSR1 signal
         '''
         self.debug("Received cancel signal", signal)
+
+    def encode_value_if_needed(self, name, cfg_setting_data, adjust_data):
+        """
+        Takes:
+            * a setting name
+            * setting data (as defined in the config)
+            * adjust data for the component that setting belongs to (as provided
+            in the adjust event)
+
+        Returns the value for the setting. If the config for that setting
+        specifies an encoder to be used, the returned value will be encoded by
+        the encoder specified in the config
+        """
+        # If there is no encoder, return as is
+        if not "encoder" in cfg_setting_data:
+            return adjust_data[name]["value"]
+
+        # Else, call the encoder
+        import encoders.base as enc
+        value, _ = enc.encode(cfg_setting_data["encoder"], adjust_data)
+        return value
+
+   def encode_describe_if_needed(self, name, data, value):
+        """
+        Takes:
+            * a setting name
+            * setting data (as defined in the config)
+            * value (as returned by the underlying infrastructure)
+
+        Returns a dict in the format { <setting_name> : { <setting_data> }},
+        suitable for returning as a description. At the very minimun,
+        <setting_data> will return the current "value". If the config for that
+        setting specifies an encoder to be used, the returned "value" ( in
+        <setting_data>) will be decoded by the encoder specified in the config.
+        """
+
+        # If there is no encoder, return description with the current value and
+        # any other params defined for the setting
+        if not "encoder" in data:
+            s_data = {"value": value}
+            for i in ["type", "min", "max", "step", "values", "unit"]:
+                if i in data:
+                    s_data[i] = data[i]
+
+            return {name: s_data}
+
+        # Else, call the encoder
+        import encoders.base as enc
+        return enc.describe(data["encoder"], value.split())
+
+
+    def get_oco_settings(self, cfg_settings):
+        """
+        Takes a config section with settings (key-value pair, where key is the
+        setting name and the value is the setting params, i.e. min/max/step,
+        etc.) and returns the list of setting names. If any of the settings
+        require an ecoder, they will be run through the encoder and the list of
+        the underlying settings (as OCO expects/provides them) will be returned
+        instead of the setting name in the config.
+        """
+        settings = []
+
+        for s_name, s_data in cfg_settings.items():
+
+            if "encoder" in s_data:
+                settings.extend(s_data["encoder"]["settings"].keys())
+            else:
+                settings.append(s_name)
+
+        return settings
