@@ -219,7 +219,7 @@ class Adjust(object):
         value, _ = enc.encode(cfg_setting_data["encoder"], adjust_data)
         return value
 
-   def encode_describe_if_needed(self, name, data, value):
+    def encode_describe_if_needed(self, name, data, value):
         """
         Takes:
             * a setting name
