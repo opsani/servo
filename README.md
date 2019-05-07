@@ -69,6 +69,7 @@ The following complete servos have been packaged and made available as container
 | [servo-tomcat-wavefront](https://github.com/opsani/servo-tomcat-wavefront) | `opsani/servo-tomcat-wavefront` |
 | [servo-skopos-ab](https://github.com/opsani/servo-skopos-ab) | `opsani/servo-skopos-ab` |
 | [servo-rancher-ab](https://github.com/opsani/servo-rancher-ab) | `opsani/servo-rancher-ab` |
+| [redis-benchmark](https://github.com/opsani/servo-redis-benchmark) | `opsani/servo-redis-benchmark` |
 
 ### Deploying servos to Kubernetes
 
@@ -105,6 +106,7 @@ Servo drivers are usually provided as open source projects in github. Here is a 
 | [javaservice](https://github.com/opsani/servo-javaservice) | Java service (Linux systemd service) |
 | [skopos](https://github.com/opsani/servo-skopos) | Skopos continuous deployment |
 | [rancher](https://github.com/opsani/servo-rancher) | Rancher 1.x container orchestration (for Rancher 2.x+, use the k8s driver) |
+| [redis](https://github.com/opsani/servo-redis) | Redis structured data store |
 
 Multiple adjust drivers can be combined in a single servo using the [aggregation](github.com/opsani/servo-agg) driver.
 
@@ -118,6 +120,7 @@ Multiple adjust drivers can be combined in a single servo using the [aggregation
 | [sfx](https://github.com/opsani/servo-sfx) | SignalFX |
 | [wavefront](https://github.com/opsani/servo-wavefront) | Wavefront |
 | [ab](https://github.com/opsani/servo-ab) | Apache Benchmark (combined load generator and measurement driver) |
+| [redis-benchmark](https://github.com/opsani/servo-redis-benchmark) | Custom benchmark for using Redis as a cache |
 | hammerdb | HammerDB benchmark (contact support for access to preliminary version of this driver) |
 
 ## Creating user-defined servos
