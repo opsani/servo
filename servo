@@ -76,6 +76,8 @@ def measure(param):
         raise Exception('Measurement driver failed with status "{}" and message "{}"'.format(
             status, rsp.get('message', 'undefined')))
     metrics = rsp.get('metrics', {})
+    annotations = rsp.get('annotations', {})
+
     if not metrics:
         raise Exception('Measurement driver returned no metrics')
 
@@ -85,7 +87,11 @@ def measure(param):
 
     print('measured ', metrics)
 
-    return dict(metrics=metrics)
+    ret = dict(metrics=metrics)
+    if annotations:
+        ret["annotations"] = annotations
+
+    return ret
 
 def adjust(param):
 
