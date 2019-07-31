@@ -93,8 +93,11 @@ class Adjust(object):
 
         # Parse input
         try:
-            # self.debug("Reading stdin")
-            input_data = json.loads(sys.stdin.read())
+            stdin_json = {}
+            if not sys.stdin.isatty():
+                # self.debug("Reading stdin")
+                stdin_json = json.loads(sys.stdin.read())
+            input_data = stdin_json
             self.input_data = input_data # LEGACY mode, remove when drivers are updated to use arg
         except Exception as e:
             self.print_json_error(

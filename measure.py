@@ -103,8 +103,11 @@ class Measure(object):
 
         # Parse input
         try:
-            self.debug("Reading stdin")
-            self.input_data = json.loads(sys.stdin.read())
+            stdin_json = {}
+            if not sys.stdin.isatty():
+                self.debug("Reading stdin")
+                stdin_json = json.loads(sys.stdin.read())
+            self.input_data = stdin_json
             # TODO: valcheck input
         except Exception as e:
             err = "failed to parse input: " + str(e)
