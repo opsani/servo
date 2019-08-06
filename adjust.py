@@ -5,6 +5,14 @@ import argparse
 import json
 import sys
 
+class AdjustError(Exception):
+    """base class for error exceptions defined by drivers.
+    """
+
+    def __init__(*args, status="failed", reason="unknown"):
+        self.status = status
+        self.reason = reason
+        super().__init__(*args)
 
 class Adjust(object):
     '''
@@ -83,11 +91,16 @@ class Adjust(object):
                     query = { "application" : query } # legacy compat.
                 print(json.dumps(query))
                 sys.exit(0)
-            except Exception as e:
-                self.print_json_error(
-                    e.__class__.__name__,
-                    "failure",
+            except AdjustError as e:
+                self._print_json_error(
+                    e.status,
+                    e.reason,
                     str(e)
+                )
+                raise
+            except Exception as e:
+                self._print_json_error(
+                    "failed", "unknown", cls=e.__class__.__name__, message=str(e)
                 )
                 raise
 
@@ -97,10 +110,10 @@ class Adjust(object):
             input_data = json.loads(sys.stdin.read())
             self.input_data = input_data # LEGACY mode, remove when drivers are updated to use arg
         except Exception as e:
-            self.print_json_error(
-                e.__class__.__name__,
-                "failed to parse input",
-                str(e)
+            self._print_json_error(
+                "failed", "unknown",
+                cls=e.__class__.__name__,
+                message="failed to parse input:" + str(e)
             )
             raise
 
@@ -111,16 +124,28 @@ class Adjust(object):
         try:
             c = self.adjust.__code__.co_argcount
             if c == 2:
-                self.adjust(input_data)
+                query = self.adjust(input_data)
             else:
-                self.adjust() # LEGACY mode
+                query = self.adjust() # LEGACY mode
+            if not query: # for old drivers that return None
+                query = {}
             # if the above didn't raise an exception, all done (empty completion data, status 'ok')
-            print(json.dumps(dict(status='ok')))
-        except Exception as e:
-            self.print_json_error(
-                e.__class__.__name__,
-                "failure",
+            if "status" not in query:
+                query["status"] = "ok"
+                query["reason"] = "success"
+            print(json.dumps(query))
+        except AdjustError as e:
+            self._print_json_error(
+                e.status,
+                e.reason,
                 str(e)
+            )
+            raise
+        except Exception as e:
+            self._print_json_error(
+                "failed", "unknown",
+                cls=e.__class__.__name__,
+                message=str(e)
             )
             raise
         finally:
@@ -165,14 +190,23 @@ class Adjust(object):
     def debug(self, *message):
         print(*message, flush=True, file=sys.stderr)
 
-    def print_json_error(self, error, cl, message):
+    @staticmethod
+    def print_json_error(error, cl, message):
         '''
         Prints JSON formatted error
+        (exported backward-compatible method, new drivers should raise an exception dervided from AdjustError)
         '''
+        Adjust._print_json_error("failed", "unknown", message, err=error, cls=cl)
+
+    @staticmethod
+    def _print_json_error(status, reason, message, err="failure", cls="AdjustError"):
+        """Print JSON-formatted status message. Internal method for use in this file only. Subclasses should raise an exception dervied from AdjustError."""
         print(json.dumps(
             {
-                "error": error,
-                "class": cl,
+                "status": status,
+                "reason": reason,
+                "error": err, # used for backward-compatibility only
+                "class": cls, # used for backward-compatibility only
                 "message": message
             }), flush=True)
 
