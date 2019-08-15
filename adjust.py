@@ -9,7 +9,7 @@ class AdjustError(Exception):
     """base class for error exceptions defined by drivers.
     """
 
-    def __init__(*args, status="failed", reason="unknown"):
+    def __init__(self, *args, status="failed", reason="unknown"):
         self.status = status
         self.reason = reason
         super().__init__(*args)
