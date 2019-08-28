@@ -350,6 +350,9 @@ def pd(obj):
 
 def exec_command():
 
+    print('Saying WHATS_NEXT.', end=' ')
+    delay()
+
     ev = ev_param = None
     cmd = request('WHATS_NEXT', None)
     if 'cmd' not in cmd:
@@ -358,6 +361,8 @@ def exec_command():
         return
 
     c = cmd['cmd']
+    print('Asked to {} with params {}.'.format(c, pd(cmd.get('param', None))), end=' ')
+    delay()
     if c == 'DESCRIBE':
         p = cmd['param']
         try:
