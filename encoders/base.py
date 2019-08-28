@@ -107,7 +107,7 @@ class RangeSetting(Setting, ABC):
             if step == 0:
                 raise SettingConfigException(
                     'Step for setting {} cannot be zero when min != max.'.format(q(self.name)))
-        if step != 0 and (maxv - minv) % step > 0:
+        if step != 0 and (maxv - minv) % step > 1e-10:
             raise SettingConfigException(
                 'Step value for setting {} must allow to get from {} to {} in equal steps. Its current value is {}. '
                 'The size of the last step would be {}.'.format(q(self.name), minv, maxv, step, (maxv - minv) % step))
