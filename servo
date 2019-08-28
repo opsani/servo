@@ -67,7 +67,7 @@ def optune_url(account, app_id):
 
 def measure(param):
 
-    print('measuring', param)
+    print('Measuring with params', param)
 
     # execute measurement driver and return result
     rsp = run_driver(DFLT_MEASURE_DRIVER, args.app_id, req=param, progress_cb=partial(report_progress, 'MEASUREMENT', time.time()))
@@ -85,7 +85,7 @@ def measure(param):
     if 'perf' not in metrics and 'requests throughput' in metrics:
         metrics['perf'] = metrics['requests throughput']    # use rq/sec as perf metric
 
-    print('measured ', metrics)
+    print('Measured', metrics)
 
     ret = dict(metrics=metrics)
     if annotations:
@@ -95,13 +95,13 @@ def measure(param):
 
 def adjust(param):
 
-    print('adjusting', param)
+    print('Adjusting.', param)
 
     # execute adjustment driver and return result
     rsp = run_driver(DFLT_ADJUST_DRIVER, args.app_id, req=param, progress_cb=partial(report_progress, 'ADJUSTMENT', time.time()))
     status = rsp.get('status', 'undefined')
     if status == 'ok':
-        print('adjusted ok')
+        print('Adjusted.')
     else:
         raise Exception('Adjustment driver failed with status "{}" and message "{}"'.format(
             status, rsp.get('message', 'undefined')))
@@ -110,7 +110,7 @@ def adjust(param):
 
 def describe():
 
-    print('describing')
+    print('Describing.')
 
     # collect environment and metrics descriptors
     # FIXME: replace with describe=True when unified
@@ -141,7 +141,7 @@ def describe():
     if OPTUNE_PERF:
        d["optimization"] = { "perf" : OPTUNE_PERF }
 
-    print('DESCRIPTOR:', d)
+    print('Described. DESCRIPTOR:', pd(d))
 
     return d
 
@@ -343,6 +343,9 @@ def exc_format(e):
         return str(e) # print only the message but not the type
     return "{}: {}".format(type(e).__name__, str(e)) # print the exception type and message
 
+def pd(obj):
+    return json.dumps(obj, default=repr)
+
 # --- Main --------------------------------------------------------------------
 
 def exec_command():
@@ -363,7 +366,7 @@ def exec_command():
             traceback.print_exc()
             v = dict(status='failed', message=exc_format(e))
         if args.verbose or args.interactive:
-            print('DESCRIBE {}: will return {}.'.format(p, v), end=' ')
+            print('Saying DESCRIBE (with params {}). Will return {}.'.format(pd(p), pd(v)), end=' ')
         ev = 'DESCRIPTION'
         ev_param = v
     elif c == 'MEASURE':
@@ -374,7 +377,7 @@ def exec_command():
             traceback.print_exc()
             v = dict(status='failed', message=exc_format(e))
         if args.verbose or args.interactive:
-            print('MEASURE {}: will return {}.'.format(p, v), end=' ')
+            print('Saying MEASURE (with params {}). Will return {}.'.format(pd(p), pd(v)), end=' ')
         ev = 'MEASUREMENT'
         ev_param = v
     elif c == 'ADJUST':
@@ -392,7 +395,7 @@ def exec_command():
             traceback.print_exc()
             v = dict(status='failed', message=exc_format(e))
         if args.verbose or args.interactive:
-            print('ADJUST to {}: will return {}.'.format(p, v), end=' ')
+            print('Saying ADJUST (with params {}). Will return {}.'.format(pd(p), pd(v)), end=' ')
         ev = 'ADJUSTMENT'
         ev_param = v
     elif c == 'SLEEP':
@@ -407,7 +410,7 @@ def exec_command():
             print('sleeping {} sec.'.format(p))
             time.sleep(duration)
     else:
-        raise Exception('unknown command "{}". Ignoring'.format(c))
+        raise Exception('Unknown command "{}". Ignoring.'.format(c))
 
     delay() # nb: in interactive mode, will display prompt and wait for keypress
     if ev:
