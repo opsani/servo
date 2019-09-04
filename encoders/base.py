@@ -1,7 +1,8 @@
-# Base exception
 import importlib
+import math
 from abc import ABC
 
+# Base exception
 EncoderException = type('EncoderException', (BaseException,), {})
 
 # User-related exceptions
@@ -81,36 +82,39 @@ class RangeSetting(Setting, ABC):
         step = self.config.get('step', default_step)
         if minv is None:
             raise SettingConfigException(
-                'No min value configured for setting {} in jvm encoder.'.format(q(self.name)))
+                'No min value configured for setting {} in encoder.'.format(q(self.name)))
         if maxv is None:
             raise SettingConfigException(
-                'No max value configured for setting {} in jvm encoder.'.format(q(self.name)))
+                'No max value configured for setting {} in encoder.'.format(q(self.name)))
         if step is None:
             raise SettingConfigException(
-                'No step value configured for setting {} in jvm encoder.'.format(q(self.name)))
+                'No step value configured for setting {} in encoder.'.format(q(self.name)))
         if not isinstance(minv, (int, float)):
-            raise SettingConfigException('Min value must be a number in setting {} of jvm encoder. '
+            raise SettingConfigException('Min value must be a number in setting {} of encoder. '
                                          'Found {}.'.format(q(self.name), q(minv)))
         if not isinstance(maxv, (int, float)):
-            raise SettingConfigException('Max value must be a number in setting {} of jvm encoder. '
+            raise SettingConfigException('Max value must be a number in setting {} of encoder. '
                                          'Found {}.'.format(q(self.name), q(maxv)))
         if not isinstance(step, (int, float)):
-            raise SettingConfigException('Step value must be a number in setting {} of jvm encoder. '
+            raise SettingConfigException('Step value must be a number in setting {} of encoder. '
                                          'Found {}.'.format(q(self.name), q(step)))
         if minv > maxv:
             raise SettingConfigException('Lower boundary is higher than upper boundary in setting {} '
-                                         'of jvm encoder.'.format(q(self.name)))
+                                         'of encoder.'.format(q(self.name)))
         if minv != maxv:
-            if step < 0:
-                raise SettingConfigException('Step for setting {} must be a positive number.'
-                                             ''.format(q(self.name)))
             if step == 0:
                 raise SettingConfigException(
                     'Step for setting {} cannot be zero when min != max.'.format(q(self.name)))
-        if step != 0 and (maxv - minv) % step > 0:
-            raise SettingConfigException(
-                'Step value for setting {} must allow to get from {} to {} in equal steps. Its current value is {}. '
-                'The size of the last step would be {}.'.format(q(self.name), minv, maxv, step, (maxv - minv) % step))
+            if step < 0:
+                raise SettingConfigException('Step for setting {} must be a positive number.'
+                                             ''.format(q(self.name)))
+        if step != 0 and minv != maxv:
+            c = (maxv - minv) / float(step)
+            if not math.isclose(c, round(c, 0), abs_tol = 1/1024):
+                raise SettingRuntimeException(
+                    'Step value for setting {} must allow to get from {} to {} in equal steps of {}.'.format(
+                        q(self.name), minv, maxv, step))
+
         # Freeze range for change from config
         if self.freeze_range:
             if default_min is None:
@@ -125,6 +129,7 @@ class RangeSetting(Setting, ABC):
             c = self.config
             if c.get('min') or c.get('max') or c.get('step'):
                 raise SettingConfigException('Cannot change min, max or step in setting {}.'.format(q(self.name)))
+
         # Relaxation of boundaries
         if self.relaxable is False:
             if default_min is None:
@@ -158,21 +163,33 @@ class RangeSetting(Setting, ABC):
         return self.name, descr
 
     def validate_value(self, value):
+        """test if value is valid and in the range or not and return a consistently-aligned value.
+        If not valid, raise exception explaining what is wrong with it
+        Note: the returned value is the input value re-aligned to multiple of step, 
+              so that two values that correspond to the same min+n*step position,
+              are always exactly equal as floats.
+        """
         if value is None:
             raise SettingRuntimeException('No value provided for setting {}'.format(self.name))
         if not isinstance(value, (float, int)):
             raise SettingRuntimeException('Value in setting {} must be either integer or float. '
                                           'Found {}.'.format(q(self.name), q(value)))
-        if value < self.min:
+        if value < self.min - self.step/1024.0:
             raise SettingRuntimeException('Value {} is violating lower bound '
                                           'in setting {}'.format(q(value), q(self.name)))
-        if value > self.max:
+        if value > self.max + self.step/1024.0:
             raise SettingRuntimeException('Value {} is violating upper bound '
                                           'in setting {}'.format(q(value), q(self.name)))
-        if self.min < self.max and self.step > 0 and (value - self.min) % self.step != 0:
-            raise SettingRuntimeException('Value {} is violating step requirement '
-                                          'in setting {}. Step is size {}'.format(q(value), q(self.name),
-                                                                                  self.step))
+        if self.min < self.max and self.step > 0:
+            c = (value - self.min) / float(self.step)
+            if not math.isclose(c, round(c, 0), abs_tol = 1/1024):
+                raise SettingRuntimeException('Value {} is violating step requirement '
+                                              'in setting {}. Step is size {}'.format(
+                                              q(value), q(self.name), q(self.step)))
+
+            # return aligned value
+            return (round(c) * self.step) + self.min
+
         return value
 
 
@@ -262,7 +279,7 @@ def validate_config(config):
     if config is None:
         config = {}
     if not isinstance(config, dict):
-        raise EncoderConfigException('Configuration object for jvm encoder is expected to be a dictionary')
+        raise EncoderConfigException('Configuration object for encoder is expected to be a dictionary')
     if not config.get('name'):
         raise EncoderConfigException('No encoder name specified')
     return config
