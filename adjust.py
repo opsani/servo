@@ -107,7 +107,11 @@ class Adjust(object):
         # Parse input
         try:
             # self.debug("Reading stdin")
-            input_data = json.loads(sys.stdin.read())
+            try:
+                input_data = json.loads(sys.stdin.read())
+            except json.decoder.JSONDecodeError as e:
+                raise Exception('Failed to read input descriptor on stdin -> ({}) {}'.format(e.__class__.__name__,
+                                                                                       str(e)))
             self.input_data = input_data # LEGACY mode, remove when drivers are updated to use arg
         except Exception as e:
             self._print_json_error(
