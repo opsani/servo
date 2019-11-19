@@ -120,6 +120,7 @@ Multiple adjust drivers can be combined in a single servo using the [aggregation
 | [sfx](https://github.com/opsani/servo-sfx) | SignalFX |
 | [wavefront](https://github.com/opsani/servo-wavefront) | Wavefront |
 | [ab](https://github.com/opsani/servo-ab) | Apache Benchmark (combined load generator and measurement driver) |
+| [exec](https://github.com/opsani/servo-exec) | Aggregation driver that supports running arbitrary commands and perform HTTP requests to provide support for other measurement drivers |
 | [redis-benchmark](https://github.com/opsani/servo-redis-benchmark) | Custom benchmark for using Redis as a cache |
 | hammerdb | HammerDB benchmark (contact support for access to preliminary version of this driver) |
 
