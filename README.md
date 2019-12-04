@@ -46,6 +46,7 @@ The servo configuration is performed through environment variables and config fi
 | OPTUNE_ACCOUNT | Account name within the Optune service (provided during signup) |
 | OPTUNE_PERF | Formula for computing performance from metrics. May be just a metric name (e.g., `throughput`) or a formula combining multiple metrics |
 | OPTUNE_VERBOSE_STDERR | Control how much of driver's stderr to send to the Optune service in case of error (`none`, `minimal`, **`all`**) |
+| OPTUNE_IO_TIMEOUT | Maximum time (seconds) to wait for a driver to send a progress or completion message. Default is empty (unlimited time). |
 
 Specific adjust and measure drivers may define additional environment variables, see the respective driver's repo and/or instructions.
 

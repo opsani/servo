@@ -54,8 +54,14 @@ DFLT_MEASURE_DRIVER = './measure'
 
 DFLT_AUTH_FILE = '/run/secrets/optune_auth_token'
 
-DRIVER_IO_TIMEOUT = 60 # max time to wait for driver to send output; this should be more than the max time between progress updates (30sec)
 DRIVER_EXIT_TIMEOUT = 3 # max time to wait for driver to exit
+# max time to wait for driver to send output; this should be more than the max time between progress updates (30sec)
+DRIVER_IO_TIMEOUT = os.environ.get("OPTUNE_IO_TIMEOUT", None)
+if DRIVER_IO_TIMEOUT:
+    DRIVER_IO_TIMEOUT = int(DRIVER_IO_TIMEOUT)
+
+if not DRIVER_IO_TIMEOUT:
+    DRIVER_IO_TIMEOUT = None # treat undefined, empty or "0" value as 'infinite'
 
 class CancelDriverException(Exception):
     '''Exception to raise to cancel pending driver operation'''
