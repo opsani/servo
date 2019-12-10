@@ -3,6 +3,7 @@ from __future__ import print_function    # py2 compatibility
 from threading import Timer
 import argparse
 import json
+import subprocess
 import sys
 
 class AdjustError(Exception):
@@ -305,3 +306,15 @@ class Adjust(object):
                 settings.append(s_name)
 
         return settings
+
+    # helper:  run a Bash shell command and raise an Exception on failure
+    # note:  if cmd is a string, this supports shell pipes, environment variable
+    # expansion, etc.  The burden of safety is entirely on the user.
+    def _run_command(self, cmd, pre=True):
+        cmd_type = 'Pre-command' if pre else 'Post-command'
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                             shell=True, executable='/bin/bash')
+        msg = "cmd '{}', exit code {}, stdout {}, stderr {}".format(cmd,
+                                                                    res.returncode, res.stdout, res.stderr)
+        assert res.returncode == 0, '{} failed:  {}'.format(cmd_type, msg)
+        self.debug('{}:  {}'.format(cmd_type, msg))
