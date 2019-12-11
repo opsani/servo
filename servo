@@ -430,6 +430,9 @@ def exec_command():
                 duration = 120 # seconds
             print('sleeping {} sec.'.format(p))
             time.sleep(duration)
+    elif c == 'EXIT':
+        global stop_flag
+        stop_flag = "exit"
     else:
         raise Exception('unknown command "{}". Ignoring'.format(c))
 
