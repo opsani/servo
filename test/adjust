@@ -1,0 +1,69 @@
+#!/usr/bin/env python3
+import sys
+import os
+import time
+
+from adjust import Adjust
+import state_store
+
+DESC = "adjust driver for testing servo with Opsani Optune"
+VERSION = "0.0.1"
+HAS_CANCEL = False
+
+QUERY = {
+    "application" : {
+        "components": {
+            "TEST": {
+                "settings": {
+                    "TEST1": {
+                        "type": "range",
+                        "max": 100,
+                        "step": 1,
+                        "min": 0
+                    },
+                    "TEST2": {
+                        "type": "enum",
+                        "values": [
+                            "A",
+                            "B",
+                            "C"
+                        ]
+                    }
+                }
+            }
+        }
+    }
+}
+
+class TestAdjust(Adjust):
+    def handle_cancel(self, signal, frame):
+        err = 'Exiting due to signal: {}'.format(signal)
+        self.debug(err)
+
+        self.print_json_error(err)
+
+        sys.exit(signal)
+
+    def query(self):
+        state = state_store.get_state()
+        q = QUERY
+        try:
+            q["application"]["components"]["TEST"]["settings"]["TEST1"]["value"] = state["application"]["components"]["TEST"]["settings"]["TEST1"]["value"]
+            q["application"]["components"]["TEST"]["settings"]["TEST2"]["value"] = state["application"]["components"]["TEST"]["settings"]["TEST2"]["value"]
+        except:
+            q["application"]["components"]["TEST"]["settings"]["TEST1"]["value"] = 50
+            q["application"]["components"]["TEST"]["settings"]["TEST2"]["value"] = "A"
+
+        return q
+
+    def adjust(self, data):
+        self.progress_message = "Running adjust test"
+        for i in range(1, 4):
+            time.sleep(15)
+            self.progress = i * 25
+            self.print_progress()
+        state_store.set_state(data)
+
+if __name__ == '__main__':
+    driver = TestAdjust(cli_desc=DESC, supports_cancel=HAS_CANCEL, version=VERSION)
+    driver.run()

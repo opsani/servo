@@ -1,6 +1,6 @@
 # servo-specific files - symlinks to drivers and descriptors used in testing
-adjust
-measure
+/adjust
+/measure
 app.yaml
 
 # Byte-compiled / optimized / DLL files
@@ -104,3 +104,6 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+#vscode
+.vscode/settings.json

@@ -300,6 +300,8 @@ def request(event, param, retries=None, backoff=True):
     if event == 'WHATS_NEXT':
         retry_delay = 1 # quick first-time retry - workaround
     ev = dict(event=event, param=param)
+    if args.verbose:
+        print("REQUEST:", ev)
     while True:
         try:
             # TODO: add retries/timeout
@@ -503,15 +505,22 @@ def graceful_restart_handler(sig_num, unused_frame):
     global stop_flag
     stop_flag = "restart"
 
-if __name__ == '__main__':
-
+# Globals set inside initialize()
+OPTUNE_PERF = None
+args = None
+session = None
+stop_flag = None
+def initialize():
+    global OPTUNE_PERF
+    global args
+    global session
+    global stop_flag
     # user settings from env variables
     OPTUNE_PERF = os.environ.get("OPTUNE_PERF", None)
     if OPTUNE_PERF: # check that it is a valid Python expression
         try:
             compile(OPTUNE_PERF, "env(OPTUNE_PERF)", "eval")
         except Exception: # catch exception and print only part of the traceback (so we don't show traceback for this file/line, only the string itself)
-            import traceback
             s = traceback.format_exc(limit=0)
             print("Error in OPTUNE_PERF environment setting:")
             print("\n".join(s.split("\n")[2:]), file=sys.stderr)
@@ -555,6 +564,7 @@ if __name__ == '__main__':
             token = auth_file.read().strip()
         session.headers.update({'Authorization': 'Bearer %s' % token})
 
+def run():
     # display mode
     if args.interactive:
         print('Interactive mode: press <Enter> to send each event')
@@ -581,3 +591,7 @@ if __name__ == '__main__':
 
     # any other value: restart
     os.execv(sys.argv[0], sys.argv)
+
+if __name__ == '__main__':
+    initialize()
+    run()

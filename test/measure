@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+import sys
+import os
+import time
+
+from measure import Measure
+from state_store import get_state
+
+DESC = "measure driver for testing servo with Opsani Optune"
+VERSION = "0.0.1"
+HAS_CANCEL = False # TODO determine how to toggle this
+
+METRICS = {
+    "TEST_METRIC": {
+        "unit": "count"
+    },
+    "TEST_TIME_TAKEN": {
+        "unit": "seconds"
+    }
+}
+
+
+TEST2_WEIGHTS = {
+    "A": 90,
+    "B": 30,
+    "C": 60
+}
+
+class TestMeasure(Measure):
+    def handle_cancel(self, signal, frame):
+        err = 'Exiting due to signal: {}'.format(signal)
+        self.debug(err)
+
+        self.print_measure_error(err)
+
+        sys.exit(signal)
+
+    def describe(self):
+        return METRICS
+
+    def measure(self):
+        state = get_state()
+        in_metrics = self.input_data['metrics']
+        ret_metrics = {}
+        self.start_time = time.time()
+
+        if "TEST_METRIC" in in_metrics:
+            test_metric_out = 0
+            try:
+                val = state["application"]["components"]["TEST"]["settings"]["TEST1"]["value"]
+                test_metric_out += val
+                val = state["application"]["components"]["TEST"]["settings"]["TEST2"]["value"]
+                test_metric_out += TEST2_WEIGHTS[val]
+            except:
+                test_metric_out = 140
+
+            ret_metrics["TEST_METRIC"] = dict(METRICS["TEST_METRIC"])
+            ret_metrics["TEST_METRIC"]["value"] = test_metric_out
+        
+        self.progress_message = "Running measure test"
+        for i in range(1, 4):
+            time.sleep(15)
+            self.progress = i * 25
+            self.print_progress()
+
+        ret_metrics["TEST_TIME_TAKEN"] = dict(METRICS["TEST_TIME_TAKEN"])
+        ret_metrics["TEST_TIME_TAKEN"]["value"] = time.time() - self.start_time
+        return ret_metrics, {}
+        
+if __name__ == '__main__':
+    driver = TestMeasure(cli_desc=DESC, supports_cancel=HAS_CANCEL, version=VERSION)
+    driver.run()
