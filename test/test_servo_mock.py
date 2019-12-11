@@ -47,14 +47,14 @@ class TestClass:
             self.whats_next_counter += 1
             resp_str = json.dumps(resp)
         elif req_dict['event'] == 'MEASUREMENT' and 'progress' in req_dict['param']:
-            if self.fail_phase == 'MEASURE' and self.progress_update_counter == 1:
+            if self.fail_phase == 'MEASURE' and (self.progress_update_counter == 1 or self.progress_update_counter == 2):
                 context.status_code = self.status_code
                 resp_str = self.error_text
             else:
                 resp_str = MOCK_STATUS_OKAY
             self.progress_update_counter += 1
         elif req_dict['event'] == 'ADJUSTMENT' and 'progress' in req_dict['param']:
-            if self.fail_phase == 'ADJUST' and self.progress_update_counter == 1:
+            if self.fail_phase == 'ADJUST' and (self.progress_update_counter == 1 or self.progress_update_counter == 2):
                 context.status_code = self.status_code
                 resp_str = self.error_text
             else:
