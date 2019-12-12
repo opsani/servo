@@ -76,7 +76,7 @@ def optune_url(account, app_id):
 
 def measure(param):
 
-    print('measuring', param)
+    print('measuring', param, flush=True)
 
     # execute measurement driver and return result
     rsp = run_driver(DFLT_MEASURE_DRIVER, args.app_id, req=param, progress_cb=partial(report_progress, 'MEASUREMENT', time.time()))
@@ -104,7 +104,7 @@ def measure(param):
 
 def adjust(param):
 
-    print('adjusting', param)
+    print('adjusting', param, flush=True)
 
     # execute adjustment driver and return result
     rsp = run_driver(DFLT_ADJUST_DRIVER, args.app_id, req=param, progress_cb=partial(report_progress, 'ADJUSTMENT', time.time()))
@@ -157,7 +157,9 @@ def describe():
 
 # --- Helpers -----------------------------------------------------------------
 
-
+proc = None
+cancel_sent = False
+cancel_supported = False
 def run_driver(driver, app, req=None, describe=False, progress_cb: typing.Callable[..., None]=None):
     '''
     Execute external driver to perform adjustment or measurement - or just get a descriptor
@@ -173,6 +175,10 @@ def run_driver(driver, app, req=None, describe=False, progress_cb: typing.Callab
                 - message: str, progress/stage message
                 - log: list[str], messages to be logged
     '''
+
+    global proc
+    global cancel_sent
+    global cancel_supported
 
     if args.verbose:
         print('DRIVER REQUEST:', driver, req)
@@ -214,6 +220,7 @@ def run_driver(driver, app, req=None, describe=False, progress_cb: typing.Callab
         stdin = b''         # no stdin
 
     # execute driver, providing request and capturing stdout/stderr
+    cancel_sent = False
     proc = subprocess.Popen(cmd, bufsize=0, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
     stderr = [] # collect all stderr here
     rsp = {"status": "nodata"} # in case driver outputs nothing at all
@@ -222,7 +229,6 @@ def run_driver(driver, app, req=None, describe=False, progress_cb: typing.Callab
     ei = [proc.stdin, proc.stdout, proc.stderr]
     eof_stdout = False
     eof_stderr = False #
-    cancel_sent = False
     while True:
         if eof_stdout and eof_stderr:
             if proc.poll() is not None: # process exited and no more data
@@ -277,6 +283,15 @@ def run_driver(driver, app, req=None, describe=False, progress_cb: typing.Callab
                                     print('Cancel already sent to `{}` driver, waiting for completion'.format(driver))
                         except Exception as e:
                             print('Warning: failed to send progress update: {}'.format(exc_format(e)))
+                    
+                    # Handle stop flag raised by graceful signal handlers
+                    if stop_flag and cancel_supported:
+                        if not cancel_sent:
+                            print('Stop flag raised (`{}`), sending cancel signal to `{}` driver'.format(stop_flag, driver))
+                            os.kill(proc.pid, signal.SIGUSR1)
+                            cancel_sent = True
+                        else:
+                            print('Stop flag raised (`{}`), cancel already sent to `{}` driver, waiting for completion'.format(stop_flag, driver))
 
                 else: # should be the last line only (TODO: check only one non-progress line is output)
                     rsp = stdout
@@ -514,6 +529,15 @@ def signal_handler(sig_num, unused_frame):
     # restore original signal handler (to prevent reentry)
     signal.signal(sig_num, signal.SIG_DFL)
 
+    global proc
+    global cancel_sent
+    global cancel_supported
+
+    if sig_num == 2 or sig_num == 15: # SIGINT or SIGTERM
+        print('*** Servo received termination signal "{}" and may be terminated prior to driver completion. Check for resource leaks'.format(sig_num), file=sys.stderr)
+    global stop_flag
+    stop_flag = sig_num
+
     # determine signal name (best effort)
     try:
         sig_name = signal.Signals(sig_num).name
@@ -521,16 +545,16 @@ def signal_handler(sig_num, unused_frame):
         sig_name = 'signal #{}'.format(sig_num)
 
     # log signal
-    print('\n*** Servo stop requested by signal "{}". Sending GOODBYE to Optune cloud service (may retry 3 times)'.format(sig_name))
+    print('\n*** Servo stop requested by signal "{}". Running drivers will be cancelled if supported'.format(sig_name))
 
-    # send GOODBYE event (best effort)
-    try:
-        request('GOODBYE', dict(reason=sig_name), retries=3, backoff=False)
-    except Exception as e:
-        print('Warning: failed to send GOODBYE: {}. Exiting anyway'.format(str(e)))
-
-    sys.exit(0) # abort now
-
+    # Cancel running driver ASAP (if any)
+    if cancel_supported and proc and proc.poll() == None:
+        if not cancel_sent:
+            print('Sending cancel signal to driver process `{}`'.format(proc.args))
+            os.kill(proc.pid, signal.SIGUSR1)
+            cancel_sent = True
+        else:
+            print('Cancel already sent to process `{}`, waiting for completion'.format(proc.args))
 
 def graceful_stop_handler(sig_num, unused_frame):
     """handle signal for graceful termination - simply set a flag to have the main loop exit after the current operation is completed"""
@@ -626,8 +650,11 @@ def run():
     if stop_flag == "exit":
         sys.exit(0)
 
-    # any other value: restart
-    os.execv(sys.argv[0], sys.argv)
+    if stop_flag == "restart":
+        os.execv(sys.argv[0], sys.argv)
+
+    # any other value: signum
+    sys.exit(stop_flag)
 
 if __name__ == '__main__':
     initialize()

@@ -70,7 +70,7 @@ class TestAdjust(Adjust):
     def adjust(self, data):
         self.progress_message = "Running adjust test"
         for i in range(1, 4):
-            time.sleep(1)
+            time.sleep(15)
             self.progress = i * 25
             self.print_progress()
         if not self.cancel_driver:
