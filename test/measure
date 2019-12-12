@@ -8,7 +8,7 @@ from state_store import get_state
 
 DESC = "measure driver for testing servo with Opsani Optune"
 VERSION = "0.0.1"
-HAS_CANCEL = False # TODO determine how to toggle this
+HAS_CANCEL = True
 
 METRICS = {
     "TEST_METRIC": {
@@ -28,12 +28,18 @@ TEST2_WEIGHTS = {
 
 class TestMeasure(Measure):
     def handle_cancel(self, signal, frame):
-        err = 'Exiting due to signal: {}'.format(signal)
-        self.debug(err)
+        # determine signal name (best effort)
+        try:
+            sig_name = signal.Signals(signal).name
+        except Exception:
+            sig_name = '#{}'.format(signal)
+            
+        cancel_reason = 'Cancelling due to signal: {}'.format(sig_name)
+        self.debug(cancel_reason)
 
-        self.print_measure_error(err)
+        self.print_measure_error(cancel_reason)
 
-        sys.exit(signal)
+        self.progress_message = "Cancelling measure test"
 
     def describe(self):
         return METRICS

@@ -3,7 +3,7 @@ from __future__ import print_function    # py2 compatibility
 from threading import Timer
 import argparse
 import json
-import subprocess
+import signal
 import sys
 
 class AdjustError(Exception):
@@ -121,6 +121,10 @@ class Adjust(object):
                 message="failed to parse input:" + str(e)
             )
             raise
+        
+        # Setup signal handlers
+        if self.supports_cancel:
+            signal.signal(signal.SIGUSR1, self.handle_cancel)
 
         # Start progress timer
         self.start_progress_timer()

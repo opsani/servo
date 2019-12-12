@@ -40,7 +40,8 @@ class TestClass:
     # Callback to replicate optune api functionality
     def mock_backend(self, request: requests.Request, context):
         req_dict = request.json()
-        print('Mock handling: {}'.format(req_dict))
+        # Uncomment for debug
+        # print('Mock handling: {}'.format(req_dict))
         if req_dict['event'] == 'WHATS_NEXT':
             self.progress_update_counter = 0
             resp = MOCK_WHATS_NEXT_QUEUE[self.whats_next_counter]
@@ -63,11 +64,12 @@ class TestClass:
         else:
             resp_str = MOCK_STATUS_OKAY
         
-        print('Mock response ({}): {}'.format(context.status_code, resp_str))
+        # Uncomment for debug
+        # print('Mock response ({}): {}'.format(context.status_code, resp_str))
         return resp_str
 
     # 200 with error message
-    def test_adjust_200(self, monkeypatch, requests_mock):
+    def test_adjust_200(self, monkeypatch, requests_mock, capsys):
         with monkeypatch.context() as m:
             # set command line arguments
             m.setattr(sys, 'argv', [ 'servo', '--no-auth', '--account', ACCOUNT, APP_ID ])
@@ -86,7 +88,16 @@ class TestClass:
             assert exit_exception.type == SystemExit
             assert exit_exception.value.code == 0
 
-    def test_measure_200(self, monkeypatch, requests_mock):
+            # Validate output
+            out_str = "Cancel already sent to `./adjust` driver, waiting for completion"
+            err_str = 'Exception: Adjustment driver failed with status "cancelled" and message "Cancelling due to signal: '
+            out, err = capsys.readouterr()
+            assert out_str in out
+            assert err_str in err
+            # sys.stdout.write(out)
+            # sys.stderr.write(err)
+
+    def test_measure_200(self, monkeypatch, requests_mock, capsys):
         with monkeypatch.context() as m:
             # set command line arguments
             m.setattr(sys, 'argv', [ 'servo', '--no-auth', '--account', ACCOUNT, APP_ID ])
@@ -104,10 +115,18 @@ class TestClass:
                 run()
             assert exit_exception.type == SystemExit
             assert exit_exception.value.code == 0
+
+            # Validate output
+            out_str = "Cancel already sent to `./measure` driver, waiting for completion"
+            out, err = capsys.readouterr()
+            assert out_str in out
+            assert not err
+            # sys.stdout.write(out)
+            # sys.stderr.write(err)
 
 
     # 400
-    def test_adjust_400(self, monkeypatch, requests_mock):
+    def test_adjust_400(self, monkeypatch, requests_mock, capsys):
         with monkeypatch.context() as m:
             # set command line arguments
             m.setattr(sys, 'argv', [ 'servo', '--no-auth', '--account', ACCOUNT, APP_ID ])
@@ -126,7 +145,17 @@ class TestClass:
             assert exit_exception.type == SystemExit
             assert exit_exception.value.code == 0
 
-    def test_measure_400(self, monkeypatch, requests_mock):
+            # Validate output
+            out_str = "Cancel already sent to `./adjust` driver, waiting for completion"
+            err_str = 'Exception: Adjustment driver failed with status "cancelled" and message "Cancelling due to signal: '
+            out, err = capsys.readouterr()
+            assert out_str in out
+            assert err_str in err
+            # sys.stdout.write(out)
+            # sys.stderr.write(err)
+            
+
+    def test_measure_400(self, monkeypatch, requests_mock, capsys):
         with monkeypatch.context() as m:
             # set command line arguments
             m.setattr(sys, 'argv', [ 'servo', '--no-auth', '--account', ACCOUNT, APP_ID ])
@@ -144,9 +173,17 @@ class TestClass:
                 run()
             assert exit_exception.type == SystemExit
             assert exit_exception.value.code == 0
+
+            # Validate output
+            out_str = "Cancel already sent to `./measure` driver, waiting for completion"
+            out, err = capsys.readouterr()
+            assert out_str in out
+            assert not err
+            # sys.stdout.write(out)
+            # sys.stderr.write(err)
 
     # 503
-    def test_adjust_503(self, monkeypatch, requests_mock):
+    def test_adjust_503(self, monkeypatch, requests_mock, capsys):
         with monkeypatch.context() as m:
             # set command line arguments
             m.setattr(sys, 'argv', [ 'servo', '--no-auth', '--account', ACCOUNT, APP_ID ])
@@ -165,7 +202,17 @@ class TestClass:
             assert exit_exception.type == SystemExit
             assert exit_exception.value.code == 0
 
-    def test_measure_503(self, monkeypatch, requests_mock):
+            # Validate output
+            out_str1 = "with status 503: Unknown route. Waiting 20 seconds to retry..."
+            out_str2 = "adjusted ok"
+            out, err = capsys.readouterr()
+            assert out_str1 in out
+            assert out_str2 in out
+            assert not err
+            # sys.stdout.write(out)
+            # sys.stderr.write(err)
+
+    def test_measure_503(self, monkeypatch, requests_mock, capsys):
         with monkeypatch.context() as m:
             # set command line arguments
             m.setattr(sys, 'argv', [ 'servo', '--no-auth', '--account', ACCOUNT, APP_ID ])
@@ -183,3 +230,13 @@ class TestClass:
                 run()
             assert exit_exception.type == SystemExit
             assert exit_exception.value.code == 0
+
+            # Validate output
+            out_str1 = "with status 503: Unknown route. Waiting 20 seconds to retry..."
+            out_str2 = "measured"
+            out, err = capsys.readouterr()
+            assert out_str1 in out
+            assert out_str2 in out
+            assert not err
+            # sys.stdout.write(out)
+            # sys.stderr.write(err)

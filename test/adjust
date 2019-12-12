@@ -2,13 +2,14 @@
 import sys
 import os
 import time
+import signal
 
 from adjust import Adjust
 import state_store
 
 DESC = "adjust driver for testing servo with Opsani Optune"
 VERSION = "0.0.1"
-HAS_CANCEL = False
+HAS_CANCEL = True
 
 QUERY = {
     "application" : {
@@ -36,13 +37,23 @@ QUERY = {
 }
 
 class TestAdjust(Adjust):
-    def handle_cancel(self, signal, frame):
-        err = 'Exiting due to signal: {}'.format(signal)
-        self.debug(err)
+    cancel_driver = False
+    cancel_reason = ''
 
-        self.print_json_error(err)
+    def handle_cancel(self, signal, frame):    
+        # determine signal name (best effort)
+        try:
+            sig_name = signal.Signals(signal).name
+        except Exception:
+            sig_name = '#{}'.format(signal)
+            
+        self.cancel_reason = 'Cancelling due to signal: {}'.format(sig_name)
+        self.debug(self.cancel_reason)
 
-        sys.exit(signal)
+        self.print_json_error(500, "TestAdjust", self.cancel_reason)
+
+        self.progress_message = "Cancelling adjust test"
+        self.cancel_driver = True
 
     def query(self):
         state = state_store.get_state()
@@ -62,7 +73,10 @@ class TestAdjust(Adjust):
             time.sleep(1)
             self.progress = i * 25
             self.print_progress()
-        state_store.set_state(data)
+        if not self.cancel_driver:
+            state_store.set_state(data)
+        else:
+            return { 'status': 'cancelled', 'message': self.cancel_reason }
 
 if __name__ == '__main__':
     driver = TestAdjust(cli_desc=DESC, supports_cancel=HAS_CANCEL, version=VERSION)
