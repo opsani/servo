@@ -111,7 +111,7 @@ class RangeSetting(Setting, ABC):
         if step != 0 and minv != maxv:
             c = (maxv - minv) / float(step)
             if not math.isclose(c, round(c, 0), abs_tol = 1/1024):
-                raise SettingRuntimeException(
+                raise SettingConfigException(
                     'Step value for setting {} must allow to get from {} to {} in equal steps of {}.'.format(
                         q(self.name), minv, maxv, step))
 
