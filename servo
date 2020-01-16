@@ -275,23 +275,14 @@ def run_driver(driver, app, req=None, describe=False, progress_cb: typing.Callab
                         except CancelDriverException as cde:
                             print('Error: backend requested driver cancel: {}'.format(exc_format(cde)))
                             if cancel_supported:
-                                if not cancel_sent:
-                                    print('Sending cancel signal to `{}` driver'.format(driver))
-                                    os.kill(proc.pid, signal.SIGUSR1)
-                                    cancel_sent = True
-                                else:
-                                    print('Cancel already sent to `{}` driver, waiting for completion'.format(driver))
+                                send_cancel()
                         except Exception as e:
                             print('Warning: failed to send progress update: {}'.format(exc_format(e)))
                     
                     # Handle stop flag raised by graceful signal handlers
                     if stop_flag and cancel_supported:
-                        if not cancel_sent:
-                            print('Stop flag raised (`{}`), sending cancel signal to `{}` driver'.format(stop_flag, driver))
-                            os.kill(proc.pid, signal.SIGUSR1)
-                            cancel_sent = True
-                        else:
-                            print('Stop flag raised (`{}`), cancel already sent to `{}` driver, waiting for completion'.format(stop_flag, driver))
+                        print('Stop flag raised (`{}`)'.format(stop_flag))
+                        send_cancel()
 
                 else: # should be the last line only (TODO: check only one non-progress line is output)
                     rsp = stdout
@@ -529,10 +520,6 @@ def signal_handler(sig_num, unused_frame):
     # restore original signal handler (to prevent reentry)
     signal.signal(sig_num, signal.SIG_DFL)
 
-    global proc
-    global cancel_sent
-    global cancel_supported
-
     if sig_num == 2 or sig_num == 15: # SIGINT or SIGTERM
         print('*** Servo received termination signal "{}" and may be terminated prior to driver completion. Check for resource leaks'.format(sig_num), file=sys.stderr)
     global stop_flag
@@ -549,12 +536,7 @@ def signal_handler(sig_num, unused_frame):
 
     # Cancel running driver ASAP (if any)
     if cancel_supported and proc and proc.poll() == None:
-        if not cancel_sent:
-            print('Sending cancel signal to driver process `{}`'.format(proc.args))
-            os.kill(proc.pid, signal.SIGUSR1)
-            cancel_sent = True
-        else:
-            print('Cancel already sent to process `{}`, waiting for completion'.format(proc.args))
+        send_cancel()
 
 def graceful_stop_handler(sig_num, unused_frame):
     """handle signal for graceful termination - simply set a flag to have the main loop exit after the current operation is completed"""
@@ -565,6 +547,16 @@ def graceful_restart_handler(sig_num, unused_frame):
     """handle signal for restart - simply set a flag to have the main loop exit and restart the process after the current operation is completed"""
     global stop_flag
     stop_flag = "restart"
+
+def send_cancel():
+    global cancel_sent
+    if not cancel_sent:
+        print('Sending cancel signal to driver process `{}`'.format(proc.args))
+        os.kill(proc.pid, signal.SIGUSR1)
+        cancel_sent = True
+    else:
+        print('Cancel already sent to driver process `{}`, waiting for completion'.format(proc.args))
+
 
 # Globals set inside initialize()
 OPTUNE_PERF = None

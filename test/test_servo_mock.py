@@ -89,7 +89,7 @@ class TestClass:
             assert exit_exception.value.code == 0
 
             # Validate output
-            out_str = "Cancel already sent to `./adjust` driver, waiting for completion"
+            out_str = "Cancel already sent to driver process `['./adjust', 'app2']`, waiting for completion"
             err_str = 'Exception: Adjustment driver failed with status "cancelled" and message "Cancelling due to signal: '
             out, err = capsys.readouterr()
             assert out_str in out
@@ -117,7 +117,7 @@ class TestClass:
             assert exit_exception.value.code == 0
 
             # Validate output
-            out_str = "Cancel already sent to `./measure` driver, waiting for completion"
+            out_str = "Cancel already sent to driver process `['./measure', 'app2']`, waiting for completion"
             out, err = capsys.readouterr()
             assert out_str in out
             assert not err
@@ -146,7 +146,7 @@ class TestClass:
             assert exit_exception.value.code == 0
 
             # Validate output
-            out_str = "Cancel already sent to `./adjust` driver, waiting for completion"
+            out_str = "Cancel already sent to driver process `['./adjust', 'app2']`, waiting for completion"
             err_str = 'Exception: Adjustment driver failed with status "cancelled" and message "Cancelling due to signal: '
             out, err = capsys.readouterr()
             assert out_str in out
@@ -175,7 +175,7 @@ class TestClass:
             assert exit_exception.value.code == 0
 
             # Validate output
-            out_str = "Cancel already sent to `./measure` driver, waiting for completion"
+            out_str = "Cancel already sent to driver process `['./measure', 'app2']`, waiting for completion"
             out, err = capsys.readouterr()
             assert out_str in out
             assert not err
