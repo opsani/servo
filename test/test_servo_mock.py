@@ -18,7 +18,7 @@ MOCK_WHATS_NEXT_QUEUE = [
     {"cmd": "MEASURE", "param": {"metrics": ["TEST_METRIC", "TEST_TIME_TAKEN"], "control": {"load": {}}}},
     {"cmd": "ADJUST", "param": {"state": {"application": {"components": {"TEST": {"settings": {"TEST1": {"value": 51.0, "index": 0}, "TEST2": {"value": "A", "index": 1}}}}}}, "control": {}}},
     {"cmd": "MEASURE", "param": {"metrics": ["TEST_METRIC", "TEST_TIME_TAKEN"], "control": {"load": {}}}},
-    {"cmd": "EXIT"},
+    {"cmd": "TEST_EXIT"},
 ]
 
 MOCK_STATUS_OKAY = """{"status": "ok"}"""

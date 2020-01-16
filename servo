@@ -472,7 +472,7 @@ def exec_command():
                 duration = 120 # seconds
             print('sleeping {} sec.'.format(p))
             time.sleep(duration)
-    elif c == 'EXIT':
+    elif c == 'TEST_EXIT': # NOTE: this is only used for testing
         global stop_flag
         stop_flag = "exit"
     else:
