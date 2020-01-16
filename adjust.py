@@ -4,6 +4,7 @@ from threading import Timer
 import argparse
 import json
 import signal
+import subprocess
 import sys
 
 class AdjustError(Exception):
