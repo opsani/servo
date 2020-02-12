@@ -67,6 +67,11 @@ class CancelDriverException(Exception):
     '''Exception to raise to cancel pending driver operation'''
     pass
 
+class DriverOutputDecodingError(Exception):
+    '''Exception indicating that a driver outputted invalid JSON to stdout'''
+    pass
+
+
 def optune_url(account, app_id):
     if args.url:
         return args.url
@@ -243,10 +248,9 @@ def run_driver(driver, app, req=None, describe=False, progress_cb: typing.Callab
                     continue # ignore blank lines (shouldn't be output, though)
                 try:
                     stdout = json.loads(stdout_line)
-                except Exception:
+                except Exception as e:
                     proc.terminate()
-                    # TODO: handle exception in json.loads?
-                    raise
+                    raise DriverOutputDecodingError(f"Failed decoding JSON stdout from '{driver}' driver: {stdout_line}") from e
                 if "progress" in stdout:
                     if progress_cb:
                         progress_cb(progress=stdout["progress"], message=stdout.get("message", None)) # FIXME stage/stageprogress ignored
