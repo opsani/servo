@@ -167,6 +167,7 @@ class Adjust(object):
             return
 
         self.timer = Timer(self.progress_interval, self.print_progress)
+        self.timer.daemon = True # allow program to exit when main thread finishes
         self.timer.start()
 
     def print_progress(
