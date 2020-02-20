@@ -146,7 +146,7 @@ class Measure(object):
     def start_progress_timer(self):
         self.stop_progress_timer()
         self.timer = Timer(self.progress_interval, self.print_progress)
-        self.timer.daemon = True # allow program to exit when main thread finishes
+        self.timer.daemon = True # allow program to exit when main thread finishes (see https://docs.python.org/3.8/library/threading.html#threading.Thread.daemon)
         self.timer.start()
 
     def print_progress(
