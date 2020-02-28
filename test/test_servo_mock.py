@@ -72,7 +72,7 @@ class TestClass:
     def test_adjust_200(self, monkeypatch, requests_mock, capsys):
         with monkeypatch.context() as m:
             # set command line arguments
-            m.setattr(sys, 'argv', [ 'servo', '--no-auth', '--account', ACCOUNT, APP_ID ])
+            m.setattr(sys, 'argv', [ 'servo', '-v', '--no-auth', '--account', ACCOUNT, APP_ID ])
             self.fail_phase = 'ADJUST'
             self.status_code = 200
             self.error_text = MOCK_STATUS_UNEXPEVNT
@@ -92,15 +92,15 @@ class TestClass:
             out_str = "Cancel already sent to driver process `['./adjust', 'app2']`, waiting for completion"
             err_str = 'Exception: Adjustment driver failed with status "cancelled" and message "Cancelling due to signal: '
             out, err = capsys.readouterr()
+            sys.stdout.write(out)
+            sys.stderr.write(err)
             assert out_str in out
             assert err_str in err
-            # sys.stdout.write(out)
-            # sys.stderr.write(err)
 
     def test_measure_200(self, monkeypatch, requests_mock, capsys):
         with monkeypatch.context() as m:
             # set command line arguments
-            m.setattr(sys, 'argv', [ 'servo', '--no-auth', '--account', ACCOUNT, APP_ID ])
+            m.setattr(sys, 'argv', [ 'servo', '-v', '--no-auth', '--account', ACCOUNT, APP_ID ])
             self.fail_phase = 'MEASURE'
             self.status_code = 200
             self.error_text = MOCK_STATUS_UNEXPEVNT
@@ -119,17 +119,17 @@ class TestClass:
             # Validate output
             out_str = "Cancel already sent to driver process `['./measure', 'app2']`, waiting for completion"
             out, err = capsys.readouterr()
+            sys.stdout.write(out)
+            sys.stderr.write(err)
             assert out_str in out
             assert not err
-            # sys.stdout.write(out)
-            # sys.stderr.write(err)
 
 
     # 400
     def test_adjust_400(self, monkeypatch, requests_mock, capsys):
         with monkeypatch.context() as m:
             # set command line arguments
-            m.setattr(sys, 'argv', [ 'servo', '--no-auth', '--account', ACCOUNT, APP_ID ])
+            m.setattr(sys, 'argv', [ 'servo', '-v', '--no-auth', '--account', ACCOUNT, APP_ID ])
             self.fail_phase = 'ADJUST'
             self.status_code = 400
             self.error_text = "Invalid input"
@@ -149,16 +149,16 @@ class TestClass:
             out_str = "Cancel already sent to driver process `['./adjust', 'app2']`, waiting for completion"
             err_str = 'Exception: Adjustment driver failed with status "cancelled" and message "Cancelling due to signal: '
             out, err = capsys.readouterr()
+            sys.stdout.write(out)
+            sys.stderr.write(err)
             assert out_str in out
             assert err_str in err
-            # sys.stdout.write(out)
-            # sys.stderr.write(err)
             
 
     def test_measure_400(self, monkeypatch, requests_mock, capsys):
         with monkeypatch.context() as m:
             # set command line arguments
-            m.setattr(sys, 'argv', [ 'servo', '--no-auth', '--account', ACCOUNT, APP_ID ])
+            m.setattr(sys, 'argv', [ 'servo', '-v', '--no-auth', '--account', ACCOUNT, APP_ID ])
             self.fail_phase = 'MEASURE'
             self.status_code = 400
             self.error_text = "Invalid input"
@@ -177,16 +177,16 @@ class TestClass:
             # Validate output
             out_str = "Cancel already sent to driver process `['./measure', 'app2']`, waiting for completion"
             out, err = capsys.readouterr()
+            sys.stdout.write(out)
+            sys.stderr.write(err)
             assert out_str in out
             assert not err
-            # sys.stdout.write(out)
-            # sys.stderr.write(err)
 
     # 503
     def test_adjust_503(self, monkeypatch, requests_mock, capsys):
         with monkeypatch.context() as m:
             # set command line arguments
-            m.setattr(sys, 'argv', [ 'servo', '--no-auth', '--account', ACCOUNT, APP_ID ])
+            m.setattr(sys, 'argv', [ 'servo', '-v', '--no-auth', '--account', ACCOUNT, APP_ID ])
             self.fail_phase = 'ADJUST'
             self.status_code = 503
             self.error_text = "Unknown route"
@@ -206,16 +206,16 @@ class TestClass:
             out_str1 = "with status 503: Unknown route. Waiting 20 seconds to retry..."
             out_str2 = "adjusted ok"
             out, err = capsys.readouterr()
+            sys.stdout.write(out)
+            sys.stderr.write(err)
             assert out_str1 in out
             assert out_str2 in out
             assert not err
-            # sys.stdout.write(out)
-            # sys.stderr.write(err)
 
     def test_measure_503(self, monkeypatch, requests_mock, capsys):
         with monkeypatch.context() as m:
             # set command line arguments
-            m.setattr(sys, 'argv', [ 'servo', '--no-auth', '--account', ACCOUNT, APP_ID ])
+            m.setattr(sys, 'argv', [ 'servo', '-v', '--no-auth', '--account', ACCOUNT, APP_ID ])
             self.fail_phase = 'MEASURE'
             self.status_code = 503
             self.error_text = "Unknown route"
@@ -235,8 +235,8 @@ class TestClass:
             out_str1 = "with status 503: Unknown route. Waiting 20 seconds to retry..."
             out_str2 = "measured"
             out, err = capsys.readouterr()
+            sys.stdout.write(out)
+            sys.stderr.write(err)
             assert out_str1 in out
             assert out_str2 in out
             assert not err
-            # sys.stdout.write(out)
-            # sys.stderr.write(err)

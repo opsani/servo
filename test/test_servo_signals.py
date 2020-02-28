@@ -20,7 +20,7 @@ def test_measure_sigterm():
         if output == b'' and proc.poll() is not None:
             break
         if output:
-            # print(output.strip())
+            print(output.strip())
             all_output += output
         if output and output.startswith(b'measuring'):
             time.sleep(1)
@@ -29,8 +29,8 @@ def test_measure_sigterm():
     rc = proc.poll()
     out_str1 = b'Cancelling due to signal: #10'
     out_str2 = b'Cancelling measure test'
+    print('rc {}'.format(rc))
+    print(str(all_output, encoding='UTF-8'))
     assert rc == 15
     assert out_str1 in all_output
     assert out_str2 in all_output
-    # print('rc {}'.format(rc))
-    # print(str(all_output, encoding='UTF-8'))
