@@ -117,8 +117,8 @@ def adjust(param):
     if status == 'ok':
         print('adjusted ok')
     else:
-        raise Exception('Adjustment driver failed with status "{}" and message "{}"'.format(
-            status, rsp.get('message', 'undefined')))
+        raise Exception('Adjustment driver failed with status "{}" and message:\n{}'.format(
+            status, str(rsp.get('message', 'undefined'))))
 
     return {}
 
