@@ -54,6 +54,9 @@ Specific adjust and measure drivers may define additional environment variables,
 
 In addition, the servo core defines a recommended configuration file, `./config.yaml` that drivers may use for additional configuration. Each driver can find its own section, under a top-level key matching the driver's name (i.e., `k8s:` for the `k8s` driver).
 
+
+![Example servo configuration][servo-config]
+
 ## Using ready servos
 
 The following complete servos have been packaged and made available as containers for easy deployment:
@@ -143,3 +146,5 @@ in the current working directory.
 When testing with a local Optune test service, use `--url http://localhost:8080/servo --noauth` options
 
 
+
+[servo-config]: ./img/servo_config.png
