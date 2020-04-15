@@ -77,7 +77,7 @@ def optune_url(account, app_id):
         return args.url
     # return public cloud service and path
     assert account, 'Optune account is not specified. Use either --account option or OPTUNE_ACCOUNT env var'
-    return 'https://api.optune.ai/accounts/{}/applications/{}/servo'.format(account, app_id)
+    return 'https://api.opsani.com/accounts/{}/applications/{}/servo'.format(account, app_id)
 
 def measure(param):
 
