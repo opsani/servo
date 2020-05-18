@@ -71,6 +71,15 @@ class DriverOutputDecodingError(Exception):
     '''Exception indicating that a driver outputted invalid JSON to stdout'''
     pass
 
+class DriverError(Exception):
+    """Exception indicating that a driver failed
+    """
+
+    def __init__(self, *args, status="failed", reason="unknown"):
+        self.status = status
+        self.reason = reason
+        super().__init__(*args)
+
 
 def optune_url(account, app_id):
     if args.url:
@@ -117,8 +126,8 @@ def adjust(param):
     if status == 'ok':
         print('adjusted ok')
     else:
-        raise Exception('Adjustment driver failed with status "{}" and message:\n{}'.format(
-            status, str(rsp.get('message', 'undefined'))))
+        raise DriverError('Adjustment driver failed with status "{}" and message:\n{}'.format(
+            status, str(rsp.get('message', 'undefined'))), status=status, reason=rsp.get('reason', 'undefined'))
 
     return {}
 
@@ -414,6 +423,9 @@ def exec_command():
             v = adjust(new_dict)
             if 'state' not in v: # if driver didn't return state, assume it is what was requested
                 v['state'] = p['state']
+        except DriverError as e:
+            traceback.print_exc()
+            v = dict(status=e.status, message=exc_format(e))
         except Exception as e:
             traceback.print_exc()
             v = dict(status='failed', message=exc_format(e))
