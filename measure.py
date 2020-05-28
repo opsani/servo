@@ -70,7 +70,7 @@ class Measure(object):
             "status": code,
             "reason": err,
         }
-        print(json.dumps(out), flush=True)
+        print('{}\n'.format(json.dumps(out)), end='', flush=True)
 
 
     def run(self):
@@ -80,7 +80,7 @@ class Measure(object):
                 "has_cancel": self.supports_cancel,
                 "version": self.version,
             }
-            print(json.dumps(out), flush=True)
+            print('{}\n'.format(json.dumps(out)), end='', flush=True)
             sys.exit(0)
 
         # Valcheck
@@ -95,7 +95,7 @@ class Measure(object):
                     "status": "ok",
                     "metrics": metrics,
                 }
-                print(json.dumps(out), flush=True)
+                print('{}\n'.format(json.dumps(out)), end='', flush=True)
                 sys.exit(0)
             except Exception as e:
                 self.print_measure_error(str(e))
@@ -132,7 +132,7 @@ class Measure(object):
             if annotations is not None:
                 out["annotations"] = annotations
 
-            print(json.dumps(out), flush=True)
+            print('{}\n'.format(json.dumps(out)), end='', flush=True)
         except Exception as e:
             self.print_measure_error(str(e), ST_FAILED)
             raise
@@ -165,7 +165,7 @@ class Measure(object):
         if stage is not None         : data['stage']         = stage
         if stageprogress is not None : data['stageprogress'] = stageprogress
 
-        print(json.dumps(data), flush=True)
+        print('{}\n'.format(json.dumps(data)), end='', flush=True)
         # Schedule the next progress update
         self.start_progress_timer()
 

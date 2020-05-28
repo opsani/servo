@@ -75,8 +75,8 @@ class Adjust(object):
             sys.exit(0)
 
         if self.args.info:
-            print(json.dumps(
-                {"version": self.version, "has_cancel": self.supports_cancel}))
+            print('{}\n'.format(json.dumps(
+                {"version": self.version, "has_cancel": self.supports_cancel})), end="")
             sys.exit(0)
 
         # Valcheck
@@ -90,7 +90,7 @@ class Adjust(object):
                 query = self.query()
                 if "application" not in query:
                     query = { "application" : query } # legacy compat.
-                print(json.dumps(query))
+                print('{}\n'.format(json.dumps(query)), end='')
                 sys.exit(0)
             except AdjustError as e:
                 self._print_json_error(
@@ -138,7 +138,7 @@ class Adjust(object):
             if "status" not in query:
                 query["status"] = "ok"
                 query["reason"] = "success"
-            print(json.dumps(query))
+            print('{}\n'.format(json.dumps(query)), end='')
         except AdjustError as e:
             self._print_json_error(
                 e.status,
@@ -189,7 +189,7 @@ class Adjust(object):
         if stageprogress is not None:
             data['stageprogress'] = stageprogress
 
-        print(json.dumps(data), flush=True)
+        print('{}\n'.format(json.dumps(data)), end='', flush=True)
         # Schedule the next progress update
         self.start_progress_timer()
 
@@ -207,14 +207,14 @@ class Adjust(object):
     @staticmethod
     def _print_json_error(status, reason, message, err="failure", cls="AdjustError"):
         """Print JSON-formatted status message. Internal method for use in this file only. Subclasses should raise an exception dervied from AdjustError."""
-        print(json.dumps(
+        print('{}\n'.format(json.dumps(
             {
                 "status": status,
                 "reason": reason,
                 "error": err, # used for backward-compatibility only
                 "class": cls, # used for backward-compatibility only
                 "message": message
-            }), flush=True)
+            })), end='', flush=True)
 
     ##################################################
     #     METHODS THAT MUST BE OVERWRITTEN
