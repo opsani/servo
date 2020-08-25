@@ -51,6 +51,7 @@ import requests.exceptions
 
 DFLT_ADJUST_DRIVER = './adjust'
 DFLT_MEASURE_DRIVER = './measure'
+DFLT_ENVIRONMENT_DRIVER = './environment'
 
 DFLT_AUTH_FILE = '/run/secrets/optune_auth_token'
 
@@ -167,6 +168,20 @@ def describe():
     print('DESCRIPTOR:', d)
 
     return d
+
+def environment(param):
+    print('verifying environment', param)
+    std_out = subprocess.check_output([DFLT_ENVIRONMENT_DRIVER], input=json.dumps(param).encode("UTF-8"))
+
+    rsp = json.loads(std_out)
+    status = rsp.get('status', 'undefined')
+    if status == 'ok':
+        print('environment ok')
+    else:
+        raise DriverError(
+            'Adjustment driver failed with status "{}" and message:\n{}\nresponse: {}'.format(
+                status, str(rsp.get('message', 'undefined')), rsp), 
+            status=status, reason=rsp.get('reason', 'undefined'))
 
 
 # --- Helpers -----------------------------------------------------------------
@@ -388,8 +403,20 @@ def exec_command():
         print('Unexpected response: {}'.format(cmd))
         delay()
         return
-
     c = cmd['cmd']
+
+    if c in {'DESCRIBE', 'MEASURE', 'ADJUST'} and cmd.get('param', {}).get('control', {}).get('environment') is not None:
+        try:
+            environment(cmd['param'])
+        except Exception as e:
+            traceback.print_exc()
+            # Do not continue execution when environment fails
+            ev = 'DESCRIPTION' if c == 'DESCRIBE' else '{}MENT'.format(c)
+            ev_param = dict(status='environment-mismatch', message=exc_format(e))
+            delay() # nb: in interactive mode, will display prompt and wait for keypress
+            request(ev, ev_param)
+            return
+
     if c == 'DESCRIBE':
         p = cmd['param']
         try:
