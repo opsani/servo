@@ -179,7 +179,7 @@ def environment(param):
         print('environment ok')
     else:
         raise DriverError(
-            'Adjustment driver failed with status "{}" and message:\n{}\nresponse: {}'.format(
+            'Environment plugin failed with status "{}" and message:\n{}\nresponse: {}'.format(
                 status, str(rsp.get('message', 'undefined')), rsp), 
             status=status, reason=rsp.get('reason', 'undefined'))
 
