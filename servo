@@ -324,7 +324,7 @@ def request(event, param, retries=None, backoff=True):
     TODO: implement backoff - currently ignored
     '''
 
-    retry_delay = 20 # seconds
+    retry_delay = os.environ.get('SERVO_RETRY_DELAY_SEC', 20) # seconds
     if event == 'WHATS_NEXT':
         retry_delay = 1 # quick first-time retry - workaround
     ev = dict(event=event, param=param)
@@ -372,7 +372,7 @@ def request(event, param, retries=None, backoff=True):
 
         print(str(exc), 'Waiting {} seconds to retry...\n'.format(retry_delay))
         time.sleep(retry_delay)   # wait for cloud service to recover; TODO add progressive backoff to ~1 minute
-        retry_delay = 20 # seconds
+        retry_delay = os.environ.get('SERVO_RETRY_DELAY_SEC', 20)  # seconds
         continue
 
     if args.verbose:
