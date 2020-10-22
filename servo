@@ -228,7 +228,7 @@ def run_driver(driver, app, req=None, describe=False, progress_cb: typing.Callab
     else:
         stdin = b''         # no stdin
 
-    info = json.load(subprocess.check_output([driver, '--info', app]))
+    info = json.loads(subprocess.check_output([driver, '--info', app]).decode())
     has_cancel = info['has_cancel']
 
     # execute driver, providing request and capturing stdout/stderr
