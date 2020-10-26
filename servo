@@ -284,7 +284,7 @@ def run_driver(driver, app, req=None, describe=False, progress_cb: typing.Callab
                             progress_cb(progress=stdout["progress"], message=stdout.get("message", None)) # FIXME stage/stageprogress ignored
                         except CancelDriverException:
                             if has_cancel:
-                                proc.send_signal(subprocess.SIGUSR1)
+                                proc.send_signal(signal.SIGUSR1)
                             else:
                                 proc.kill()
                             traceback.print_exc()
