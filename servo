@@ -228,6 +228,9 @@ def run_driver(driver, app, req=None, describe=False, progress_cb: typing.Callab
     else:
         stdin = b''         # no stdin
 
+    info = json.loads(subprocess.check_output([driver, '--info', app]).decode())
+    has_cancel = info['has_cancel']
+
     # execute driver, providing request and capturing stdout/stderr
     proc = subprocess.Popen(cmd, bufsize=0, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
     stderr = [] # collect all stderr here
@@ -277,7 +280,15 @@ def run_driver(driver, app, req=None, describe=False, progress_cb: typing.Callab
                     raise DriverOutputDecodingError(f"Failed decoding JSON stdout from '{driver}' driver: {stdout_line}") from e
                 if "progress" in stdout:
                     if progress_cb:
-                        progress_cb(progress=stdout["progress"], message=stdout.get("message", None)) # FIXME stage/stageprogress ignored
+                        try:
+                            progress_cb(progress=stdout["progress"], message=stdout.get("message", None)) # FIXME stage/stageprogress ignored
+                        except CancelDriverException:
+                            if has_cancel:
+                                proc.send_signal(signal.SIGUSR1)
+                            else:
+                                proc.kill()
+                            traceback.print_exc()
+                            
                 else: # should be the last line only (TODO: check only one non-progress line is output)
                     rsp = stdout
         if w:
@@ -509,8 +520,8 @@ def report_progress(operation: str, ts_started: float, progress: int, time_remai
 
     # send event (limited retries)
     rsp = request(operation, param, retries=1, backoff=False)
-    #if rsp.xxx:
-    #   raise CancelDriverException('message')
+    if rsp.get('status') == 'cancel':
+        raise CancelDriverException(rsp.get('reason') or 'API STOP command issued')
     return
 
 
