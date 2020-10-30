@@ -409,7 +409,11 @@ def exc_format(e):
 def exec_command():
 
     ev = ev_param = None
-    cmd = request('WHATS_NEXT', None)
+    try:
+        cmd = request('WHATS_NEXT', None)
+    except CancelDriverException:
+        traceback.print_exc()
+        cmd = {'cmd': 'SLEEP', 'param': {'duration': '120'}}
     if 'cmd' not in cmd:
         print('Unexpected response: {}'.format(cmd))
         delay()
