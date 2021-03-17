@@ -98,7 +98,7 @@ def measure(param):
     status = rsp.get('status', 'undefined')
     if status != 'ok':
         raise DriverError('Measurement driver failed with status "{}" and message:\n{}'.format(
-            status, str(rsp.get('message', 'undefined'))), status=status, reason=rsp.get('reason', 'undefined'))
+            status, rsp.get('message', 'undefined')), status=status, reason=rsp.get('reason', 'undefined'))
     metrics = rsp.get('metrics', {})
     annotations = rsp.get('annotations', {})
 
@@ -128,7 +128,7 @@ def adjust(param):
         print('adjusted ok')
     else:
         raise DriverError('Adjustment driver failed with status "{}" and message:\n{}'.format(
-            status, str(rsp.get('message', 'undefined'))), status=status, reason=rsp.get('reason', 'undefined'))
+            status, rsp.get('message', 'undefined')), status=status, reason=rsp.get('reason', 'undefined'))
 
     return {}
 
