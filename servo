@@ -444,7 +444,6 @@ def exec_command():
         try:
             v = measure(p)
         except DriverError as e:
-            traceback.print_exc()
             v = dict(status=e.status, message=exc_format(e), reason=e.reason)
         except Exception as e:
             traceback.print_exc()
@@ -465,7 +464,6 @@ def exec_command():
             if 'state' not in v: # if driver didn't return state, assume it is what was requested
                 v['state'] = p['state']
         except DriverError as e:
-            traceback.print_exc()
             v = dict(status=e.status, message=exc_format(e), reason=e.reason)
         except Exception as e:
             traceback.print_exc()
