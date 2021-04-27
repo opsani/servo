@@ -61,14 +61,19 @@ class Measure(object):
         if self.args.info and self.args.describe:
             self.parser.error('argument --info: not allowed with argument --describe')
 
-    def print_measure_error(self, err, code=ST_FAILED):
+    def print_measure_error(self, messsage, status='failed', reason='unknown'):
         '''
         Prints JSON formatted error and exit
         Takes an error message as string
         '''
+        if status == ST_FAILED:
+            status = 'failed'
+        if status == ST_BAD_REQUEST:
+            status = 'bad-request'
         out = {
-            "status": code,
-            "reason": err,
+            "status": status,
+            "message": messsage,
+            "reason": reason,
         }
         print(json.dumps(out), flush=True)
 
@@ -108,7 +113,7 @@ class Measure(object):
             # TODO: valcheck input
         except Exception as e:
             err = "failed to parse input: " + str(e)
-            self.print_measure_error(err, ST_BAD_REQUEST)
+            self.print_measure_error(err, 'bad-request')
             raise
 
         #print('MEASURE DRIVER: READ INPUT:', self.input_data) ##@#
@@ -134,7 +139,7 @@ class Measure(object):
 
             print(json.dumps(out), flush=True)
         except Exception as e:
-            self.print_measure_error(str(e), ST_FAILED)
+            self.print_measure_error(str(e))
             raise
         finally:
             self.stop_progress_timer()
