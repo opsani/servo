@@ -97,8 +97,8 @@ def measure(param):
     rsp = run_driver(DFLT_MEASURE_DRIVER, args.app_id, req=param, progress_cb=partial(report_progress, 'MEASUREMENT', time.time()))
     status = rsp.get('status', 'undefined')
     if status != 'ok':
-        raise Exception('Measurement driver failed with status "{}" and message "{}"'.format(
-            status, rsp.get('message', 'undefined')))
+        raise DriverError('Measurement driver failed with status "{}" and message:\n{}'.format(
+            status, rsp.get('message', 'undefined')), status=status, reason=rsp.get('reason', 'undefined'))
     metrics = rsp.get('metrics', {})
     annotations = rsp.get('annotations', {})
 
@@ -128,7 +128,7 @@ def adjust(param):
         print('adjusted ok')
     else:
         raise DriverError('Adjustment driver failed with status "{}" and message:\n{}'.format(
-            status, str(rsp.get('message', 'undefined'))), status=status, reason=rsp.get('reason', 'undefined'))
+            status, rsp.get('message', 'undefined')), status=status, reason=rsp.get('reason', 'undefined'))
 
     return {}
 
@@ -448,6 +448,8 @@ def exec_command():
         p = cmd['param']
         try:
             v = measure(p)
+        except DriverError as e:
+            v = dict(status=e.status, message=exc_format(e), reason=e.reason)
         except Exception as e:
             traceback.print_exc()
             v = dict(status='failed', message=exc_format(e))
@@ -467,8 +469,7 @@ def exec_command():
             if 'state' not in v: # if driver didn't return state, assume it is what was requested
                 v['state'] = p['state']
         except DriverError as e:
-            traceback.print_exc()
-            v = dict(status=e.status, message=exc_format(e))
+            v = dict(status=e.status, message=exc_format(e), reason=e.reason)
         except Exception as e:
             traceback.print_exc()
             v = dict(status='failed', message=exc_format(e))
